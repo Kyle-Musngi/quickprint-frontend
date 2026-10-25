@@ -1,0 +1,276 @@
+.admin-approvals-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+  width: 100%;
+}
+
+.approvals-top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.approvals-header {
+  margin-bottom: 2rem;
+}
+
+.approvals-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+  letter-spacing: -0.02em;
+}
+
+/* Tabs */
+.approvals-tabs-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.approvals-tab-btn {
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.approvals-tab-btn:hover {
+  color: var(--dark-blue);
+  background-color: var(--bg-subtle);
+}
+
+.approvals-tab-btn.active {
+  color: #ffffff;
+  background-color: var(--primary-blue);
+}
+
+/* Empty State */
+.approvals-empty-state {
+  text-align: center;
+  padding: 4.5rem 2rem;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Shop Card */
+.approval-shop-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.5rem;
+}
+
+.approval-card-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.approval-shop-name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+}
+
+.approval-shop-desc {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  max-width: 700px;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.approval-meta-grid {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.approval-owner-card {
+  background-color: var(--bg-subtle);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color);
+  min-width: 220px;
+}
+
+.operational-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.operational-badge.active {
+  background-color: #DCFCE7;
+  color: #15803D;
+}
+
+.operational-badge.suspended {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.approval-reason-banner {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-top: 1rem;
+  font-size: 0.88rem;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+/* Toast */
+.approvals-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.toast-success {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.toast-error {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
+/* Modal */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.admin-modal-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.admin-modal-close:hover {
+  color: var(--dark-blue);
+  background-color: var(--bg-subtle);
+}
+
+.admin-modal-body {
+  padding: 1.5rem;
+}
+
+.modal-section {
+  margin-bottom: 1.25rem;
+}
+
+.modal-section h4 {
+  font-size: 0.95rem;
+  color: var(--dark-blue);
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.25rem;
+}
+
+.modal-section p {
+  margin: 0.25rem 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.modal-section p strong {
+  color: var(--dark-blue);
+}
+
+.admin-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background-color: var(--bg-subtle);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+  .approval-card-main {
+    flex-direction: column;
+  }
+  .approval-owner-card {
+    width: 100%;
+  }
+}

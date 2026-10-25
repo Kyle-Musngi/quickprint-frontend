@@ -1,0 +1,252 @@
+.shop-settings-page {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+  width: 100%;
+}
+
+.settings-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2rem;
+}
+
+.settings-section-divider {
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.75rem;
+  margin-top: 1.75rem;
+}
+
+/* Operating Hours Editor Styles */
+.hours-table-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+
+.hours-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.hours-table th {
+  background-color: var(--bg-subtle);
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hours-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.hours-table tr:last-child td {
+  border-bottom: none;
+}
+
+.hours-table tr.row-closed {
+  background-color: #FAFAFA;
+}
+
+.day-label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.day-name {
+  font-weight: 700;
+  color: var(--dark-blue);
+  font-size: 0.95rem;
+}
+
+.day-status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.day-status-pill.open {
+  background-color: #DEF7EC;
+  color: #03543F;
+}
+
+.day-status-pill.closed {
+  background-color: #F3F4F6;
+  color: #6B7280;
+}
+
+/* Toggle Switch min 44x44 touch area */
+.hours-toggle-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggle-track {
+  width: 48px;
+  height: 26px;
+  background-color: #CBD5E1;
+  border-radius: 999px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-track.active {
+  background-color: var(--primary-blue);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(22px);
+}
+
+/* Accessible Selects with 44px height */
+.hours-time-select {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  font-size: 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--dark-blue);
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 140px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.hours-time-select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.hours-time-select:disabled {
+  background-color: #F1F5F9;
+  color: #94A3B8;
+  cursor: not-allowed;
+  border-color: #E2E8F0;
+}
+
+.hours-closed-dash {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-left: 0.5rem;
+}
+
+.hours-error-text {
+  color: var(--color-error);
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+  font-weight: 600;
+}
+
+/* Shortcut Tools Bar */
+.hours-shortcuts-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  background-color: var(--bg-subtle);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.shortcut-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-shortcut {
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--dark-blue);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-shortcut:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+  background-color: #F8FAFC;
+}
+
+.hours-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn-reset-hours {
+  min-height: 44px;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-reset-hours:hover {
+  background-color: #F1F5F9;
+  color: var(--dark-blue);
+}
+
+@media (max-width: 640px) {
+  .hours-table th, .hours-table td {
+    padding: 0.75rem 0.6rem;
+  }
+  .hours-time-select {
+    min-width: 110px;
+    font-size: 0.85rem;
+  }
+}

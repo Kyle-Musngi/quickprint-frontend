@@ -1,0 +1,32 @@
+.shop-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.shop-status-badge.is-open {
+  background: var(--color-success-bg);
+  color: #166534;
+}
+
+.shop-status-badge.is-closed {
+  background: #F1F5F9;
+  color: var(--text-secondary);
+}
+
+.shop-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}

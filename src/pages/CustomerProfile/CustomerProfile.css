@@ -1,0 +1,93 @@
+.customer-profile-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+  width: 100%;
+}
+
+.profile-top-bar {
+  margin-bottom: 1.5rem;
+}
+
+.profile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  color: var(--text-main, #1e293b);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.profile-back-btn:hover {
+  background-color: var(--accent-light, #eff6ff);
+  border-color: var(--primary-blue, #2563eb);
+  color: var(--primary-blue, #2563eb);
+  transform: translateX(-2px);
+}
+
+.profile-back-btn:focus-visible {
+  outline: 2px solid var(--primary-blue, #2563eb);
+  outline-offset: 2px;
+}
+
+#student-id:focus {
+  border-color: var(--primary-blue, #2563eb);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.profile-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-avatar-wrap {
+  width: 72px;
+  height: 72px;
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+}
+
+.profile-role-badge {
+  display: inline-block;
+  background-color: var(--accent-light);
+  color: var(--primary-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}

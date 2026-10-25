@@ -1,0 +1,334 @@
+.order-tracking-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+  width: 100%;
+}
+
+.tracking-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tracking-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--dark-blue, #1E3A8A);
+  letter-spacing: -0.02em;
+}
+
+.tracking-sub {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #64748B);
+  margin-top: 0.2rem;
+}
+
+.pickup-code-banner {
+  background: linear-gradient(135deg, var(--dark-blue, #1E3A8A), var(--primary-blue, #2563EB));
+  color: #ffffff;
+  border-radius: var(--radius-lg, 12px);
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1));
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.pickup-code-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #BFDBFE;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.pickup-code-display {
+  font-size: 2.75rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.tracking-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color, #E2E8F0);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));
+  margin-bottom: 1.75rem;
+}
+
+.tracking-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark-blue, #1E3A8A);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Awaiting Payment Action Callout */
+.awaiting-payment-callout {
+  background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+  border: 2px solid #93C5FD;
+  border-radius: 12px;
+  padding: 1.75rem 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.callout-content h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1E3A8A;
+  margin-bottom: 0.35rem;
+}
+
+.callout-content p {
+  font-size: 0.95rem;
+  color: #334155;
+  margin-bottom: 0.4rem;
+}
+
+.deadline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background-color: #FEF3C7;
+  color: #92400E;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+}
+
+.btn-pay-now-large {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.9rem 1.75rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-pay-now-large:hover {
+  background-color: #1D4ED8;
+  transform: translateY(-2px);
+}
+
+/* Status Timeline */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 11px;
+  width: 2px;
+  background-color: var(--border-color, #E2E8F0);
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -2rem;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid var(--border-color, #CBD5E1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94A3B8);
+  font-size: 0.7rem;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.timeline-step.completed .timeline-dot {
+  border-color: #15803D;
+  background-color: #15803D;
+  color: #ffffff;
+}
+
+.timeline-step.current .timeline-dot {
+  border-color: #2563EB;
+  background-color: #2563EB;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.timeline-content h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dark-blue, #1E3A8A);
+}
+
+.timeline-step.upcoming .timeline-content h4 {
+  color: var(--text-muted, #94A3B8);
+}
+
+.timeline-content p {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748B);
+  margin-top: 0.2rem;
+}
+
+.timeline-time {
+  font-size: 0.75rem;
+  color: #2563EB;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+/* Details Grid */
+.tracking-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748B);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.info-item-value {
+  font-size: 1rem;
+  color: var(--text-main, #1E293B);
+  font-weight: 600;
+}
+
+/* Rate This Shop Card */
+.review-card-section {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  padding: 2rem;
+  margin-top: 1.75rem;
+}
+
+.rating-stars-interactive {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 1rem 0 0.5rem;
+}
+
+.star-rating-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #CBD5E1;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.star-rating-btn:hover,
+.star-rating-btn.active {
+  color: #F59E0B;
+  transform: scale(1.15);
+}
+
+.star-rating-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+}
+
+.star-label-hint {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #D97706;
+  margin-left: 0.5rem;
+}
+
+.review-textarea {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1E293B;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 90px;
+  margin-top: 0.75rem;
+}
+
+.review-textarea:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.existing-review-box {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+  .pickup-code-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .awaiting-payment-callout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .btn-pay-now-large {
+    width: 100%;
+    justify-content: center;
+  }
+  .tracking-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
