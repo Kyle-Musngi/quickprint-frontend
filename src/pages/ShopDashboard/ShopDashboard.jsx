@@ -16,7 +16,10 @@ import {
   AlertCircle,
   HelpCircle,
   Check,
-  X
+  X,
+  Tag,
+  SlidersHorizontal,
+  LayoutGrid
 } from 'lucide-react';
 import { analyticsService, orderService } from '../../services/api';
 import ShopOrders from '../ShopOrders/ShopOrders';
@@ -41,6 +44,12 @@ const ShopDashboard = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [visitedTabs, setVisitedTabs] = useState(() => new Set([initialTab]));
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  const handleProcessOrder = (ord) => {
+    setSelectedOrderId(ord.id);
+    switchTab('orders');
+  };
 
   useEffect(() => {
     if (queryTab) {
@@ -164,34 +173,31 @@ const ShopDashboard = () => {
     <div className="shop-dashboard-page">
       {/* Hero Widget */}
       <div className="shop-dash-hero">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <img
-            src="/images/uqp-logo.png"
-            alt="Univ Quick Print Logo"
-            className="shop-hero-logo"
-            style={{ width: '54px', height: '54px', objectFit: 'contain', borderRadius: '10px', flexShrink: 0 }}
-          />
+        <div className="shop-dash-hero-left">
+          <div className="shop-hero-icon-box">
+            <Printer size={28} color="#FFFFFF" />
+          </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="shop-hero-title-row">
               <h1 className="shop-dash-hero-title">{shop.name}</h1>
               <span className={`shop-dash-status-pill pill-${shop.status}`}>
                 {shop.status}
               </span>
             </div>
-            <p style={{ color: '#94A3B8' }}>
+            <p className="shop-hero-hours">
               Operating Hours: {formatTime12Hour(shop.opening_time)} - {formatTime12Hour(shop.closing_time)} • {shop.is_open ? '● Open to Customers' : '○ Closed'}
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="shop-dash-hero-actions">
           {isApproved ? (
-            <button type="button" onClick={() => switchTab('orders')} className="home-btn-primary">
-              <ListOrdered size={18} /> Manage Orders Queue
+            <button type="button" onClick={() => switchTab('orders')} className="btn-manage-queue">
+              <SlidersHorizontal size={17} /> Manage Orders Queue
             </button>
           ) : (
-            <button type="button" onClick={() => switchTab('settings')} className="home-btn-primary">
-              <Settings size={18} /> View / Edit Application
+            <button type="button" onClick={() => switchTab('settings')} className="btn-manage-queue">
+              <Settings size={17} /> View / Edit Application
             </button>
           )}
         </div>
@@ -205,7 +211,7 @@ const ShopDashboard = () => {
           className={`portal-nav-link ${activeTab === 'overview' ? 'active' : ''}`}
           aria-pressed={activeTab === 'overview'}
         >
-          <Store size={16} /> Overview
+          <LayoutGrid size={16} /> Overview
         </button>
         <button
           type="button"
@@ -213,15 +219,7 @@ const ShopDashboard = () => {
           className={`portal-nav-link ${activeTab === 'orders' ? 'active' : ''}`}
           aria-pressed={activeTab === 'orders'}
         >
-          <Package size={16} /> Orders Queue ({status_counts?.submitted || 0} New)
-        </button>
-        <button
-          type="button"
-          onClick={() => switchTab('refunds')}
-          className={`portal-nav-link ${activeTab === 'refunds' ? 'active' : ''}`}
-          aria-pressed={activeTab === 'refunds'}
-        >
-          <DollarSign size={16} /> Refunds {pendingRefunds > 0 && `(${pendingRefunds})`}
+          <ListOrdered size={16} /> Orders Queue ({status_counts?.submitted || 0} New)
         </button>
         <button
           type="button"
@@ -229,7 +227,7 @@ const ShopDashboard = () => {
           className={`portal-nav-link ${activeTab === 'pricing' ? 'active' : ''}`}
           aria-pressed={activeTab === 'pricing'}
         >
-          <Printer size={16} /> Pricing & Services
+          <Tag size={16} /> Pricing & Services
         </button>
         <button
           type="button"
@@ -254,6 +252,14 @@ const ShopDashboard = () => {
           aria-pressed={activeTab === 'settings'}
         >
           <Settings size={16} /> Shop Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('refunds')}
+          className={`portal-nav-link ${activeTab === 'refunds' ? 'active' : ''}`}
+          aria-pressed={activeTab === 'refunds'}
+        >
+          <DollarSign size={16} /> Refunds {pendingRefunds > 0 && `(${pendingRefunds})`}
         </button>
       </nav>
 
@@ -290,105 +296,103 @@ const ShopDashboard = () => {
           )}
 
           <div className="shop-stats-grid">
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
-              <div className="stat-icon orange">
+            <div className="shop-stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
+              <div className="shop-stat-icon amber">
                 <Clock size={24} />
               </div>
               <div>
-                <div className="stat-num">{status_counts?.submitted || 0}</div>
-                <div className="stat-label">Awaiting Acceptance</div>
+                <div className="shop-stat-num">{status_counts?.submitted || 0}</div>
+                <div className="shop-stat-label">AWAITING ACCEPTANCE</div>
               </div>
             </div>
 
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
-              <div className="stat-icon blue">
+            <div className="shop-stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
+              <div className="shop-stat-icon blue">
                 <Printer size={24} />
               </div>
               <div>
-                <div className="stat-num">
+                <div className="shop-stat-num">
                   {(status_counts?.in_production || status_counts?.accepted || 0) + (status_counts?.printing || 0)}
                 </div>
-                <div className="stat-label">In Production</div>
+                <div className="shop-stat-label">IN PRODUCTION</div>
               </div>
             </div>
 
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
-              <div className="stat-icon green">
+            <div className="shop-stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
+              <div className="shop-stat-icon green">
                 <CheckCircle2 size={24} />
               </div>
               <div>
-                <div className="stat-num">{status_counts?.ready_for_pickup || 0}</div>
-                <div className="stat-label">Ready for Pickup</div>
+                <div className="shop-stat-num">{status_counts?.ready_for_pickup || 0}</div>
+                <div className="shop-stat-label">READY FOR PICKUP</div>
               </div>
             </div>
 
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('refunds')}>
-              <div className="stat-icon purple">
-                <HelpCircle size={24} />
-              </div>
-              <div>
-                <div className="stat-num">{pendingRefunds}</div>
-                <div className="stat-label">Refund Claims</div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon purple">
+            <div className="shop-stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
+              <div className="shop-stat-icon purple">
                 <DollarSign size={24} />
               </div>
               <div>
-                <div className="stat-num">₱{parseFloat(overview.recorded_payments_total || '0').toFixed(2)}</div>
-                <div className="stat-label">Recorded Payments (Sandbox)</div>
+                <div className="shop-stat-num">₱{parseFloat(overview.recorded_payments_total || '0').toFixed(2)}</div>
+                <div className="shop-stat-label">RECORDED PAYMENTS</div>
+                <div className="shop-stat-sub">(SANDBOX)</div>
               </div>
             </div>
           </div>
 
+          {pendingRefunds > 0 && (
+            <div className="shop-refund-banner" onClick={() => switchTab('refunds')}>
+              <AlertCircle size={18} />
+              <span><strong>Action Required:</strong> You have {pendingRefunds} customer refund claim{pendingRefunds > 1 ? 's' : ''} awaiting review.</span>
+              <span className="shop-refund-link">Manage Refunds &rarr;</span>
+            </div>
+          )}
+
           {/* Recent Orders Queue */}
-          <div className="dashboard-section">
-            <div className="dashboard-section-header">
-              <h2 className="dashboard-section-title">Recent Incoming Orders</h2>
+          <div className="shop-recent-orders-card">
+            <div className="shop-section-header">
+              <h2 className="shop-section-title">Recent Incoming Orders</h2>
               <button
                 type="button"
                 onClick={() => switchTab('orders')}
-                style={{ fontSize: '0.9rem', color: 'var(--primary-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                className="shop-link-btn"
               >
                 Open Full Queue &rarr;
               </button>
             </div>
 
             {(!overview.recent_orders || overview.recent_orders.length === 0) ? (
-              <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-subtle)', borderRadius: 12 }}>
-                <Package size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem' }} />
+              <div className="shop-empty-orders">
+                <Package size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem' }} />
                 <p style={{ color: 'var(--text-secondary)' }}>No orders received yet.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="orders-table">
+              <div className="shop-table-container">
+                <table className="shop-incoming-table">
                   <thead>
                     <tr>
-                      <th>Order #</th>
-                      <th>Customer</th>
-                      <th>Pickup Code</th>
-                      <th>Schedule</th>
-                      <th>Status</th>
-                      <th>Total</th>
-                      <th>Direct Actions</th>
+                      <th>ORDER #</th>
+                      <th>CUSTOMER</th>
+                      <th>PICKUP CODE</th>
+                      <th>SCHEDULE</th>
+                      <th>STATUS</th>
+                      <th>TOTAL</th>
+                      <th>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
                     {overview.recent_orders.map((ord) => {
-                      const isOrderPending = ['submitted', 'pending_acceptance', 'received'].includes(ord.status);
                       return (
                         <tr key={ord.id}>
                           <td><strong>{ord.order_number}</strong></td>
                           <td>{ord.customer__first_name} {ord.customer__last_name}</td>
                           <td>
                             {ord.pickup_code ? (
-                              <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: 4 }}>
+                              <span className="shop-pickup-badge">
                                 {ord.pickup_code}
                               </span>
                             ) : (
-                              <span style={{ color: 'var(--text-muted)' }}>Not issued</span>
+                              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.85rem' }}>Not issued</span>
                             )}
                           </td>
                           <td>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</td>
@@ -399,41 +403,13 @@ const ShopDashboard = () => {
                           </td>
                           <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
                           <td>
-                            <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
-                              {isOrderPending ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickAccept(ord.id)}
-                                    disabled={actionLoadingId === ord.id}
-                                    className="btn-order-action btn-action-accept"
-                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
-                                    title="Quick Accept Order"
-                                  >
-                                    <Check size={14} /> Accept
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickReject(ord.id)}
-                                    disabled={actionLoadingId === ord.id}
-                                    className="btn-order-action btn-action-reject"
-                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
-                                    title="Quick Reject Order"
-                                  >
-                                    <X size={14} /> Reject
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => switchTab('orders')}
-                                  className="btn-nav-outline"
-                                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
-                                >
-                                  Manage in Queue &rarr;
-                                </button>
-                              )}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleProcessOrder(ord)}
+                              className="btn-process-action"
+                            >
+                              Process
+                            </button>
                           </td>
                         </tr>
                       );
@@ -447,7 +423,7 @@ const ShopDashboard = () => {
 
         {visitedTabs.has('orders') && (
           <div style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
-            <ShopOrders />
+            <ShopOrders initialOrderId={selectedOrderId} />
           </div>
         )}
 

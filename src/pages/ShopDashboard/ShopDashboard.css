@@ -8,76 +8,119 @@
 }
 
 .shop-dash-hero {
-  background: linear-gradient(135deg, var(--dark-blue), #1e293b);
+  background: #0F172A;
   color: #ffffff;
   border-radius: var(--radius-lg);
-  padding: 2.5rem;
+  padding: 2rem 2.25rem;
   margin-bottom: 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
   gap: 1.5rem;
 }
 
-.shop-dash-hero-title {
-  font-size: 2rem;
-  font-weight: 800;
+.shop-dash-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.shop-hero-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background-color: #1E3A8A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.shop-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.shop-dash-hero-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.shop-hero-hours {
+  color: #94A3B8;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.shop-dash-hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-manage-queue {
+  background-color: var(--primary-blue, #2563EB);
+  color: #ffffff;
+  border: 1px solid var(--primary-blue, #2563EB);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.65rem 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-manage-queue:hover {
+  background-color: var(--primary-blue-hover, #1D4ED8);
+  border-color: var(--primary-blue-hover, #1D4ED8);
 }
 
 .shop-dash-status-pill {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.65rem;
   border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.pill-approved { background-color: var(--color-success-bg); color: var(--color-success); }
-.pill-pending { background-color: var(--color-warning-bg); color: var(--color-warning); }
-.pill-suspended { background-color: var(--color-error-bg); color: var(--color-error); }
-
-.shop-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
-}
+.pill-approved { background-color: #DCFCE7; color: #15803D; }
+.pill-pending { background-color: #FEF3C7; color: #B45309; }
+.pill-suspended { background-color: #FEE2E2; color: #DC2626; }
+.pill-rejected { background-color: #FEE2E2; color: #DC2626; }
 
 .shop-portal-nav {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
 }
 
-.shop-portal-content {
-  min-height: 540px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.shop-portal-content > * {
-  width: 100%;
-}
-
 .portal-nav-link {
-  min-height: 44px;
-  padding: 0.75rem 1.25rem;
+  min-height: 42px;
+  padding: 0.65rem 1.15rem;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.95rem;
-  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color, #E2E8F0);
   background-color: #ffffff;
-  color: var(--text-main);
+  color: #475569;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .portal-nav-link:focus-visible {
@@ -85,53 +128,205 @@
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .portal-nav-link {
-    transition: none;
-  }
+.portal-nav-link:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
 }
 
-@media (max-width: 600px) {
-  .shop-dashboard-page {
-    padding-inline: 1rem;
-  }
-
-  .shop-dash-hero {
-    padding: 1.5rem;
-  }
-
-  .shop-dash-hero-title {
-    font-size: 1.5rem;
-  }
-
-  .shop-portal-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .portal-nav-link {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-}
-
-.portal-nav-link:hover,
 .portal-nav-link.active {
-  background-color: var(--primary-blue);
+  background-color: var(--primary-blue, #2563EB);
   color: #ffffff;
-  border-color: var(--primary-blue);
+  border-color: var(--primary-blue, #2563EB);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
-@media (max-width: 900px) {
-  .shop-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.shop-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
 }
-@media (max-width: 600px) {
-  .shop-stats-grid {
-    grid-template-columns: 1fr;
-  }
+
+.shop-stat-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--border-color, #E2E8F0);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shop-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.shop-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shop-stat-icon.amber { background-color: #FEF3C7; color: #D97706; }
+.shop-stat-icon.blue { background-color: #EFF6FF; color: #2563EB; }
+.shop-stat-icon.green { background-color: #DCFCE7; color: #16A34A; }
+.shop-stat-icon.purple { background-color: #F3E8FF; color: #9333EA; }
+
+.shop-stat-num {
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: var(--text-main, #0F172A);
+  line-height: 1.1;
+}
+
+.shop-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748B);
+  margin-top: 0.35rem;
+}
+
+.shop-stat-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted, #94A3B8);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.shop-refund-banner {
+  background-color: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.shop-refund-banner:hover {
+  background-color: #FDE68A;
+}
+
+.shop-refund-link {
+  margin-left: auto;
+  font-weight: 700;
+  color: #B45309;
+}
+
+.shop-recent-orders-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--border-color, #E2E8F0);
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.shop-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.shop-section-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main, #0F172A);
+  margin: 0;
+}
+
+.shop-link-btn {
+  font-size: 0.9rem;
+  color: var(--primary-blue, #2563EB);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.shop-link-btn:hover {
+  text-decoration: underline;
+}
+
+.shop-empty-orders {
+  text-align: center;
+  padding: 3rem;
+  background-color: var(--bg-subtle, #F8FAFC);
+  border-radius: 12px;
+}
+
+.shop-table-container {
+  overflow-x: auto;
+}
+
+.shop-incoming-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.shop-incoming-table th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748B);
+  border-bottom: 1px solid var(--border-color, #E2E8F0);
+  white-space: nowrap;
+}
+
+.shop-incoming-table td {
+  padding: 1rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.shop-incoming-table tr:hover td {
+  background-color: #F8FAFC;
+}
+
+.shop-pickup-badge {
+  background-color: #EFF6FF;
+  color: var(--primary-blue, #2563EB);
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+
+.btn-process-action {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-process-action:hover {
+  border-color: var(--primary-blue, #2563EB);
+  color: var(--primary-blue, #2563EB);
+  background-color: #EFF6FF;
 }
 
 /* Reviews Tab Styles */

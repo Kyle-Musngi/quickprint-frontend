@@ -184,15 +184,12 @@ const AdminDashboard = () => {
     <div className="admin-dashboard-page">
       <div className="admin-header">
         <div className="admin-header-left">
-          <img
-            src="/images/uqp-logo.png"
-            alt="Univ Quick Print Logo"
-            className="admin-header-logo"
-            style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px', flexShrink: 0 }}
-          />
+          <div className="admin-icon-box">
+            <Printer size={26} color="#FFFFFF" />
+          </div>
           <div>
             <h1 className="admin-title">Platform Administration</h1>
-            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+            <p className="admin-subtitle">
               System-wide overview for Univ Quick Print operations in the Philippines.
             </p>
           </div>
@@ -202,62 +199,61 @@ const AdminDashboard = () => {
           <button
             type="button"
             onClick={fetchMetrics}
-            className="btn-nav-outline"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            className="admin-action-btn outline"
             title="Refresh metrics"
           >
             <RotateCcw size={15} /> Refresh
           </button>
-          <Link to="/admin/questions" className="btn-nav-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Link to="/admin/questions" className="admin-action-btn outline">
             <HelpCircle size={16} /> Customer Questions
           </Link>
-          <Link to="/admin/approvals" className="home-btn-primary">
+          <Link to="/admin/approvals" className="admin-action-btn primary">
             <Store size={18} /> Review Pending Shops ({shops.pending || 0})
           </Link>
         </div>
       </div>
 
       {/* Main Stats Counters */}
-      <div className="shop-stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue"><Users size={24} /></div>
+      <div className="admin-stats-grid">
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon blue"><Users size={24} /></div>
           <div>
-            <div className="stat-num">{users.total || 0}</div>
-            <div className="stat-label">Total Users</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {users.customers || 0} students • {users.shop_owners || 0} shop owners
+            <div className="admin-stat-num">{users.total || 0}</div>
+            <div className="admin-stat-label">TOTAL USERS</div>
+            <div className="admin-stat-sub">
+              {users.customers || 0} students · {users.shop_owners || 0} shop owners
             </div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon orange"><Store size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon orange"><Store size={24} /></div>
           <div>
-            <div className="stat-num">{shops.total || 0}</div>
-            <div className="stat-label">Registered Shops</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {shops.approved || 0} approved • {shops.pending || 0} pending
+            <div className="admin-stat-num">{shops.total || 0}</div>
+            <div className="admin-stat-label">REGISTERED SHOPS</div>
+            <div className="admin-stat-sub">
+              {shops.approved || 0} approved · {shops.pending || 0} pending
             </div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon green"><Package size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon green"><Package size={24} /></div>
           <div>
-            <div className="stat-num">{orders.total || 0}</div>
-            <div className="stat-label">Total Platform Orders</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {orders.completed || 0} completed • {orders.active || 0} active
+            <div className="admin-stat-num">{orders.total || 0}</div>
+            <div className="admin-stat-label">TOTAL PLATFORM ORDERS</div>
+            <div className="admin-stat-sub">
+              {orders.completed || 0} completed · {orders.active || 0} active
             </div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon purple"><CreditCard size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon purple"><CreditCard size={24} /></div>
           <div>
-            <div className="stat-num">₱{parseFloat(payments.total_volume || '0').toFixed(2)}</div>
-            <div className="stat-label">Sandbox Volume ({payments.successful_count || 0} paid txns)</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+            <div className="admin-stat-num">₱{parseFloat(payments.total_volume || '0').toFixed(2)}</div>
+            <div className="admin-stat-label">SANDBOX VOLUME ({payments.successful_count || 0} PAID TXNS)</div>
+            <div className="admin-stat-sub">
               Simulated sandbox payments
             </div>
           </div>
@@ -265,36 +261,38 @@ const AdminDashboard = () => {
       </div>
 
       {/* Breakdown Cards */}
-      <div className="admin-grid-2" style={{ marginBottom: '2rem' }}>
+      <div className="admin-grid-2">
         {/* Order Status Distribution */}
-        <div className="dashboard-section" style={{ padding: '1.5rem', background: '#fff', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-          <h3 style={{ fontSize: '1.1rem', color: 'var(--dark-blue)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={18} style={{ color: 'var(--primary-blue)' }} /> Platform Order Pipeline
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Awaiting Acceptance</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#B45309' }}>{orders.pending_acceptance || 0}</div>
+        <div className="admin-section-card">
+          <div className="admin-section-header">
+            <h3 className="admin-section-title">
+              <Package size={18} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Platform Order Pipeline
+            </h3>
+          </div>
+          <div className="admin-pipeline-grid-6">
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Awaiting Acceptance</div>
+              <div className="admin-pipeline-num" style={{ color: '#D97706' }}>{orders.pending_acceptance || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Awaiting Payment</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#C2410C' }}>{orders.awaiting_payment || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Awaiting Payment</div>
+              <div className="admin-pipeline-num" style={{ color: '#EA580C' }}>{orders.awaiting_payment || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>In Production</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-blue)' }}>{orders.in_production || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">In Production</div>
+              <div className="admin-pipeline-num" style={{ color: 'var(--primary-blue, #2563EB)' }}>{orders.in_production || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ready for Pickup</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#9333EA' }}>{orders.ready_for_pickup || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Ready for Pickup</div>
+              <div className="admin-pipeline-num" style={{ color: '#9333EA' }}>{orders.ready_for_pickup || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Completed</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)' }}>{orders.completed || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Completed</div>
+              <div className="admin-pipeline-num" style={{ color: 'var(--color-success, #16A34A)' }}>{orders.completed || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cancelled / Rejected</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#6B7280' }}>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Cancelled / Rejected</div>
+              <div className="admin-pipeline-num" style={{ color: '#64748B' }}>
                 {(orders.cancelled || 0) + (orders.rejected || 0) + (orders.expired || 0)}
               </div>
             </div>
@@ -302,26 +300,28 @@ const AdminDashboard = () => {
         </div>
 
         {/* Shop Network Distribution */}
-        <div className="dashboard-section" style={{ padding: '1.5rem', background: '#fff', borderRadius: 12, border: '1px solid var(--border-color)' }}>
-          <h3 style={{ fontSize: '1.1rem', color: 'var(--dark-blue)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Store size={18} style={{ color: 'var(--primary-blue)' }} /> Shop Approval Status
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Approved & Operating</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-success)' }}>{shops.approved || 0}</div>
+        <div className="admin-section-card">
+          <div className="admin-section-header">
+            <h3 className="admin-section-title">
+              <Store size={18} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Shop Approval Status
+            </h3>
+          </div>
+          <div className="admin-pipeline-grid-4">
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Approved & Operating</div>
+              <div className="admin-pipeline-num" style={{ color: 'var(--color-success, #16A34A)' }}>{shops.approved || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Pending Verification</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#D97706' }}>{shops.pending || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Pending Verification</div>
+              <div className="admin-pipeline-num" style={{ color: '#D97706' }}>{shops.pending || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Suspended</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-error)' }}>{shops.suspended || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Suspended</div>
+              <div className="admin-pipeline-num" style={{ color: 'var(--color-error, #DC2626)' }}>{shops.suspended || 0}</div>
             </div>
-            <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Rejected Applications</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#6B7280' }}>{shops.rejected || 0}</div>
+            <div className="admin-pipeline-box">
+              <div className="admin-pipeline-label">Rejected Applications</div>
+              <div className="admin-pipeline-num" style={{ color: '#64748B' }}>{shops.rejected || 0}</div>
             </div>
           </div>
         </div>
@@ -330,22 +330,22 @@ const AdminDashboard = () => {
       {/* 2 Column Details */}
       <div className="admin-grid-2">
         {/* Recent Registered Shops */}
-        <div className="dashboard-section">
-          <div className="dashboard-section-header">
-            <h2 className="dashboard-section-title">Printing Shops</h2>
-            <Link to="/admin/approvals" style={{ fontSize: '0.85rem', color: 'var(--primary-blue)', fontWeight: 600 }}>
+        <div className="admin-section-card">
+          <div className="admin-section-header">
+            <h2 className="admin-section-title">Printing Shops</h2>
+            <Link to="/admin/approvals" style={{ fontSize: '0.85rem', color: 'var(--primary-blue, #2563EB)', fontWeight: 600 }}>
               Approvals Queue &rarr;
             </Link>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table className="orders-table">
+          <div className="admin-table-container">
+            <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Shop Name</th>
-                  <th>Location</th>
-                  <th>Owner</th>
-                  <th>Status</th>
+                  <th>SHOP NAME</th>
+                  <th>LOCATION</th>
+                  <th>OWNER</th>
+                  <th>STATUS</th>
                 </tr>
               </thead>
               <tbody>
@@ -375,19 +375,19 @@ const AdminDashboard = () => {
         </div>
 
         {/* Recent Orders */}
-        <div className="dashboard-section">
-          <div className="dashboard-section-header">
-            <h2 className="dashboard-section-title">Recent Platform Orders</h2>
+        <div className="admin-section-card">
+          <div className="admin-section-header">
+            <h2 className="admin-section-title">Recent Platform Orders</h2>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table className="orders-table">
+          <div className="admin-table-container">
+            <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Order #</th>
-                  <th>Shop</th>
-                  <th>Status</th>
-                  <th>Total</th>
+                  <th>ORDER #</th>
+                  <th>SHOP</th>
+                  <th>STATUS</th>
+                  <th>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -417,11 +417,11 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* FEATURE 4: Admin Platform Refund Management Section */}
-      <div className="dashboard-section" style={{ marginTop: '2rem' }}>
-        <div className="dashboard-section-header">
-          <h2 className="dashboard-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Platform Refund Management
+      {/* Admin Platform Refund Management Section */}
+      <div className="admin-section-card" style={{ marginTop: '2rem' }}>
+        <div className="admin-section-header">
+          <h2 className="admin-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DollarSign size={20} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Platform Refund Management
           </h2>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             {adminRefunds.filter((r) => ['pending', 'under_review'].includes(r.status.toLowerCase())).length} Claims Pending Review
@@ -433,17 +433,17 @@ const AdminDashboard = () => {
             No customer refund claims registered on the platform.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="orders-table">
+          <div className="admin-table-container">
+            <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Claim #</th>
-                  <th>Order #</th>
-                  <th>Customer</th>
-                  <th>Reason</th>
-                  <th>Requested</th>
-                  <th>Status</th>
-                  <th>Decision Actions</th>
+                  <th>CLAIM #</th>
+                  <th>ORDER #</th>
+                  <th>CUSTOMER</th>
+                  <th>REASON</th>
+                  <th>REQUESTED</th>
+                  <th>STATUS</th>
+                  <th>DECISION ACTIONS</th>
                 </tr>
               </thead>
               <tbody>

@@ -29,8 +29,9 @@ const formatFileSize = (bytes) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-const ShopOrders = () => {
-  const { id: targetOrderId } = useParams();
+const ShopOrders = ({ initialOrderId }) => {
+  const { id: routeOrderId } = useParams();
+  const targetOrderId = initialOrderId || routeOrderId;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
