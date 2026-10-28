@@ -152,7 +152,7 @@ function App() {
                 <Route
                   path="/shop-registration"
                   element={
-                    <ProtectedRoute allowedRoles={['shop_owner', 'admin']}>
+                    <ProtectedRoute allowedRoles={['customer', 'shop_owner', 'admin']}>
                       <ShopRegistration />
                     </ProtectedRoute>
                   }

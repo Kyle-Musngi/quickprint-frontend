@@ -13,9 +13,13 @@ import {
   Clock,
   Printer,
   XCircle,
-  HelpCircle
+  HelpCircle,
+  DollarSign,
+  Eye,
+  Check,
+  X
 } from 'lucide-react';
-import { analyticsService } from '../../services/api';
+import { analyticsService, paymentService } from '../../services/api';
 import { formatOrderStatus, getOrderStatusBadge } from '../../utils/formatOrderStatus';
 import './AdminDashboard.css';
 
@@ -24,14 +28,23 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [adminRefunds, setAdminRefunds] = useState([]);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [actionModal, setActionModal] = useState(null); // { type: 'approve' | 'reject', refund: obj }
+  const [actionNotes, setActionNotes] = useState('');
+  const [approvedAmount, setApprovedAmount] = useState('');
 
   const fetchMetrics = async () => {
     setLoading(true);
     setErrorStatus(null);
     setErrorMessage('');
     try {
-      const res = await analyticsService.getAdminOverview();
+      const [res, refundsRes] = await Promise.all([
+        analyticsService.getAdminOverview(),
+        paymentService.getRefunds({ view: 'admin' }).catch(() => [])
+      ]);
       setData(res);
+      setAdminRefunds(Array.isArray(refundsRes) ? refundsRes : (refundsRes.results || []));
     } catch (err) {
       const status = err.response?.status;
       setErrorStatus(status || 500);
@@ -42,6 +55,39 @@ const AdminDashboard = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenAction = (type, refund) => {
+    setActionModal({ type, refund });
+    setActionNotes('');
+    setApprovedAmount(refund.requested_amount);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!actionModal) return;
+    const { type, refund } = actionModal;
+    if (type === 'reject' && !actionNotes.trim()) {
+      alert('Please provide a decision note explaining the rejection.');
+      return;
+    }
+
+    setActionLoadingId(refund.id);
+    try {
+      const payload = {
+        action: type,
+        decision_notes: actionNotes.trim()
+      };
+      if (type === 'approve') {
+        payload.amount = parseFloat(approvedAmount) || parseFloat(refund.requested_amount);
+      }
+      await paymentService.processRefundAction(refund.id, payload);
+      setActionModal(null);
+      await fetchMetrics();
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.detail || 'Failed to update refund.');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -352,6 +398,161 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* FEATURE 4: Admin Platform Refund Management Section */}
+      <div className="dashboard-section" style={{ marginTop: '2rem' }}>
+        <div className="dashboard-section-header">
+          <h2 className="dashboard-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Platform Refund Management
+          </h2>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            {adminRefunds.filter((r) => ['pending', 'under_review'].includes(r.status.toLowerCase())).length} Claims Pending Review
+          </span>
+        </div>
+
+        {adminRefunds.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 8, color: 'var(--text-secondary)' }}>
+            No customer refund claims registered on the platform.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="orders-table">
+              <thead>
+                <tr>
+                  <th>Claim #</th>
+                  <th>Order #</th>
+                  <th>Customer</th>
+                  <th>Reason</th>
+                  <th>Requested</th>
+                  <th>Status</th>
+                  <th>Decision Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminRefunds.map((ref) => {
+                  const isActionable = ['pending', 'under_review'].includes(ref.status.toLowerCase());
+                  return (
+                    <tr key={ref.id}>
+                      <td><strong>#{ref.id}</strong></td>
+                      <td><strong>{ref.order_number || `#${ref.order}`}</strong></td>
+                      <td>{ref.customer_name || 'Customer'}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{ref.reason.replace(/_/g, ' ')}</div>
+                        {ref.customer_explanation && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: 220, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {ref.customer_explanation}
+                          </div>
+                        )}
+                      </td>
+                      <td><strong>₱{parseFloat(ref.requested_amount).toFixed(2)}</strong></td>
+                      <td>
+                        <span className={`badge ${ref.status === 'completed' || ref.status === 'approved' ? 'badge-success' : ref.status === 'rejected' ? 'badge-error' : 'badge-warning'}`} style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.75rem' }}>
+                          {ref.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                          {isActionable ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-order-action btn-action-accept"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                disabled={actionLoadingId === ref.id}
+                                onClick={() => handleOpenAction('approve', ref)}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-order-action btn-action-reject"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                disabled={actionLoadingId === ref.id}
+                                onClick={() => handleOpenAction('reject', ref)}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {ref.approved_amount ? `₱${parseFloat(ref.approved_amount).toFixed(2)}` : 'Closed'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Admin Action Modal for Refunds */}
+      {actionModal && (
+        <div className="admin-modal-overlay" onClick={() => setActionModal(null)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 style={{ margin: 0, color: actionModal.type === 'approve' ? 'var(--color-success)' : 'var(--color-error)' }}>
+                {actionModal.type === 'approve' ? 'Approve Refund Request' : 'Reject Refund Request'}
+              </h3>
+              <button type="button" className="admin-modal-close" onClick={() => setActionModal(null)}>
+                &times;
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
+                Order #{actionModal.refund.order_number || actionModal.refund.order} — Requested amount: <strong>₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}</strong>
+              </p>
+
+              {actionModal.type === 'approve' && (
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Authorized Refund Amount (₱):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-input"
+                    value={approvedAmount}
+                    onChange={(e) => setApprovedAmount(e.target.value)}
+                  />
+                  <small style={{ color: 'var(--text-muted)' }}>
+                    Maximum eligible balance: ₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}
+                  </small>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600 }}>
+                  Decision Explanation {actionModal.type === 'reject' ? '(required)' : '(optional)'}:
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder={actionModal.type === 'approve' ? 'Administrative approval note...' : 'Explain why the refund request is declined...'}
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button type="button" className="btn-nav-outline" onClick={() => setActionModal(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`btn-order-action ${actionModal.type === 'approve' ? 'btn-action-accept' : 'btn-action-reject'}`}
+                disabled={actionModal.type === 'reject' && !actionNotes.trim()}
+                onClick={handleConfirmAction}
+              >
+                Confirm {actionModal.type === 'approve' ? 'Approval' : 'Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

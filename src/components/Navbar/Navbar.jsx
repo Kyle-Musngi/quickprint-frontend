@@ -11,7 +11,8 @@ import {
   ChevronDown,
   LayoutDashboard,
   Package,
-  Settings
+  Settings,
+  Store
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -308,6 +309,16 @@ const Navbar = () => {
                           <Package size={16} />
                           <span>My Orders</span>
                         </Link>
+                        <Link
+                          to="/shop-registration"
+                          className="user-dropdown-item"
+                          role="menuitem"
+                          onClick={() => setUserMenuOpen(false)}
+                          style={{ color: 'var(--primary-blue)', fontWeight: 600 }}
+                        >
+                          <Store size={16} />
+                          <span>Become a Shop Owner</span>
+                        </Link>
                       </>
                     ) : (user.role === 'shop_owner' || user.role === 'shop_staff') ? (
                       <>
@@ -407,6 +418,9 @@ const Navbar = () => {
                   <Link to="/customer/profile" className="navbar-link" onClick={closeMobile}>Profile</Link>
                   <Link to="/customer/notifications" className="navbar-link" onClick={closeMobile}>
                     Notifications ({unreadCount})
+                  </Link>
+                  <Link to="/shop-registration" className="navbar-link" onClick={closeMobile} style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>
+                    Become a Shop Owner
                   </Link>
                 </div>
               )}

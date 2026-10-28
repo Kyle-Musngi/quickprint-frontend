@@ -92,26 +92,6 @@ const Signup = () => {
         )}
 
         <form onSubmit={handleSubmit} className="signup-form">
-          <div className="form-group">
-            <label className="form-label">I am joining as a:</label>
-            <div className="role-selector">
-              <div
-                className={`role-option ${formData.role === 'customer' ? 'active' : ''}`}
-                onClick={() => setFormData({ ...formData, role: 'customer' })}
-              >
-                <div className="role-option-title">Customer / Student</div>
-                <div className="role-option-desc">Order & pick up prints</div>
-              </div>
-              <div
-                className={`role-option ${formData.role === 'shop_owner' ? 'active' : ''}`}
-                onClick={() => setFormData({ ...formData, role: 'shop_owner' })}
-              >
-                <div className="role-option-title">Print Shop Owner</div>
-                <div className="role-option-desc">Manage shop & print queue</div>
-              </div>
-            </div>
-          </div>
-
           <div className="form-grid-2">
             <div className="form-group">
               <label className="form-label">First Name</label>
@@ -244,7 +224,7 @@ const Signup = () => {
           </label>
 
           <button type="submit" className="signup-submit-btn" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Complete Registration'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 

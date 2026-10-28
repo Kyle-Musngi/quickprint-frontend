@@ -84,7 +84,10 @@ export const shopService = {
     return res.data;
   },
   registerShop: async (data) => {
-    const res = await api.post('/shops/register/', data);
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    const res = await api.post('/shops/register/', data, isFormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {});
     return res.data;
   },
   getMyShop: async () => {
@@ -131,6 +134,11 @@ export const shopService = {
   adminShopAction: async (shopId, action, reason = '') => {
     const res = await api.post(`/shops/admin/${shopId}/action/`, { action, reason });
     return res.data;
+  },
+  getVerificationDocumentUrl: (shopId, docType, disposition = 'inline') => {
+    const token = localStorage.getItem('uqp_access_token');
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/shops/${shopId}/verifications/${docType}/?disposition=${disposition}${tokenParam}`;
   }
 };
 
@@ -294,6 +302,35 @@ export const paymentService = {
   },
   getPayment: async (id) => {
     const res = await api.get(`/payments/${id}/`);
+    return res.data;
+  },
+  // Refund Management
+  getRefundEligibility: async (orderId) => {
+    const res = await api.get('/payments/refunds/eligibility/', { params: { order_id: orderId } });
+    return res.data;
+  },
+  createRefundRequest: async (data) => {
+    const res = await api.post('/payments/refunds/request/', data);
+    return res.data;
+  },
+  getRefunds: async (params) => {
+    const res = await api.get('/payments/refunds/', { params });
+    return res.data;
+  },
+  getRefund: async (id) => {
+    const res = await api.get(`/payments/refunds/${id}/`);
+    return res.data;
+  },
+  cancelRefund: async (id) => {
+    const res = await api.post(`/payments/refunds/${id}/cancel/`);
+    return res.data;
+  },
+  processRefundAction: async (id, action, reason = '', amountApproved = null) => {
+    const res = await api.post(`/payments/refunds/${id}/action/`, {
+      action,
+      decision_reason: reason,
+      amount_approved: amountApproved
+    });
     return res.data;
   }
 };

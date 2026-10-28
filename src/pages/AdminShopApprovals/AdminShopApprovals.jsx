@@ -14,7 +14,11 @@ import {
   Eye,
   ShieldAlert,
   CheckCircle,
-  FileText
+  FileText,
+  ExternalLink,
+  Download,
+  HelpCircle,
+  History
 } from 'lucide-react';
 import { shopService } from '../../services/api';
 import { formatTime12Hour } from '../../utils/formatTime';
@@ -30,10 +34,13 @@ const AdminShopApprovals = () => {
 
   // Modal states
   const [selectedShopDetails, setSelectedShopDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [suspensionModalShop, setSuspensionModalShop] = useState(null);
   const [suspensionReason, setSuspensionReason] = useState('');
   const [rejectionModalShop, setRejectionModalShop] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [moreInfoModalShop, setMoreInfoModalShop] = useState(null);
+  const [moreInfoReason, setMoreInfoReason] = useState('');
 
   const fetchShops = async (statusFilter = activeTab) => {
     setLoading(true);
@@ -57,11 +64,28 @@ const AdminShopApprovals = () => {
     setTimeout(() => setFeedbackMsg({ text: '', type: '' }), 4500);
   };
 
+  const handleOpenDetails = async (shop) => {
+    setSelectedShopDetails(shop);
+    setDetailsLoading(true);
+    try {
+      const fullShop = await shopService.getShop(shop.id);
+      setSelectedShopDetails(fullShop);
+    } catch {
+      // keep shop as is
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   const handleShopAction = async (shopId, action, reason = '') => {
     setActionLoadingId(shopId);
     try {
       const res = await shopService.adminShopAction(shopId, action, reason);
       showToast(res.message || `Action '${action}' succeeded.`, 'success');
+      // If modal was open for this shop, update details
+      if (selectedShopDetails && selectedShopDetails.id === shopId) {
+        handleOpenDetails(selectedShopDetails);
+      }
       // Refresh list immediately from backend
       await fetchShops(activeTab);
     } catch (err) {
@@ -73,7 +97,7 @@ const AdminShopApprovals = () => {
   };
 
   const handleApprove = (shop) => {
-    if (window.confirm(`Are you sure you want to approve "${shop.name}"? It will become active and publicly visible to students.`)) {
+    if (window.confirm(`Are you sure you want to approve "${shop.name}"? The applicant's account role will be changed to Shop Owner and their shop will become active.`)) {
       handleShopAction(shop.id, 'approve');
     }
   };
@@ -88,6 +112,18 @@ const AdminShopApprovals = () => {
     setRejectionModalShop(null);
     setRejectionReason('');
     handleShopAction(shopId, 'reject', reason);
+  };
+
+  const confirmMoreInfo = () => {
+    if (!moreInfoReason.trim()) {
+      alert('Please specify the additional information or documents required.');
+      return;
+    }
+    const shopId = moreInfoModalShop.id;
+    const reason = moreInfoReason.trim();
+    setMoreInfoModalShop(null);
+    setMoreInfoReason('');
+    handleShopAction(shopId, 'more_info', reason);
   };
 
   const confirmSuspend = () => {
@@ -271,7 +307,7 @@ const AdminShopApprovals = () => {
                 <button
                   type="button"
                   className="btn-nav-outline"
-                  onClick={() => setSelectedShopDetails(shop)}
+                  onClick={() => handleOpenDetails(shop)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <Eye size={16} /> View Application
@@ -287,6 +323,18 @@ const AdminShopApprovals = () => {
                       onClick={() => handleApprove(shop)}
                     >
                       <Check size={16} /> Approve Shop
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-nav-outline"
+                      disabled={actionLoadingId === shop.id}
+                      onClick={() => {
+                        setMoreInfoModalShop(shop);
+                        setMoreInfoReason('');
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <HelpCircle size={16} /> Request Info
                     </button>
                     <button
                       type="button"
@@ -337,7 +385,7 @@ const AdminShopApprovals = () => {
       {/* Modal: View Full Shop Application Details */}
       {selectedShopDetails && (
         <div className="admin-modal-overlay" onClick={() => setSelectedShopDetails(null)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-modal-card" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3 style={{ margin: 0, color: 'var(--dark-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Store size={20} style={{ color: 'var(--primary-blue)' }} /> {selectedShopDetails.name} — Application Details
@@ -347,8 +395,14 @@ const AdminShopApprovals = () => {
               </button>
             </div>
             <div className="admin-modal-body">
+              {detailsLoading && (
+                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>
+                  Refreshing latest verification records...
+                </div>
+              )}
               <div className="modal-section">
                 <h4>General Information</h4>
+                <p><strong>Status:</strong> <span className={`shop-dash-status-pill pill-${selectedShopDetails.status}`}>{selectedShopDetails.status}</span></p>
                 <p><strong>Description:</strong> {selectedShopDetails.description || 'None'}</p>
                 <p><strong>Location:</strong> {selectedShopDetails.address}, {selectedShopDetails.barangay ? `${selectedShopDetails.barangay}, ` : ''}{selectedShopDetails.city}</p>
                 <p><strong>Contact:</strong> {selectedShopDetails.phone_number} • {selectedShopDetails.email}</p>
@@ -366,9 +420,127 @@ const AdminShopApprovals = () => {
               {selectedShopDetails.owner && (
                 <div className="modal-section">
                   <h4>Applicant Account</h4>
-                  <p><strong>Name:</strong> {selectedShopDetails.owner.full_name}</p>
+                  <p><strong>Name:</strong> {selectedShopDetails.owner.full_name || selectedShopDetails.owner.username}</p>
                   <p><strong>Username:</strong> @{selectedShopDetails.owner.username}</p>
                   <p><strong>Email:</strong> {selectedShopDetails.owner.email}</p>
+                  <p><strong>Role:</strong> {selectedShopDetails.owner.role}</p>
+                </div>
+              )}
+
+              {/* Verification Documents */}
+              <div className="modal-section">
+                <h4>Verification Documents</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 6 }}>
+                    <div>
+                      <strong>Valid Government ID:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: selectedShopDetails.government_id ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                        {selectedShopDetails.government_id ? 'Uploaded' : 'Not provided'}
+                      </span>
+                    </div>
+                    {selectedShopDetails.government_id && (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'government_id', 'inline')}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <ExternalLink size={13} /> View
+                        </a>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'government_id', 'attachment')}
+                          download
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <Download size={13} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 6 }}>
+                    <div>
+                      <strong>Business Permit:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: selectedShopDetails.business_permit ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                        {selectedShopDetails.business_permit ? 'Uploaded' : 'Not provided'}
+                      </span>
+                    </div>
+                    {selectedShopDetails.business_permit && (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'business_permit', 'inline')}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <ExternalLink size={13} /> View
+                        </a>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'business_permit', 'attachment')}
+                          download
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <Download size={13} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 6 }}>
+                    <div>
+                      <strong>Proof of Ownership / Lease:</strong>
+                      <span style={{ marginLeft: '0.5rem', color: selectedShopDetails.proof_of_ownership ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                        {selectedShopDetails.proof_of_ownership ? 'Uploaded' : 'Not provided'}
+                      </span>
+                    </div>
+                    {selectedShopDetails.proof_of_ownership && (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'proof_of_ownership', 'inline')}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <ExternalLink size={13} /> View
+                        </a>
+                        <a
+                          href={shopService.getVerificationDocumentUrl(selectedShopDetails.id, 'proof_of_ownership', 'attachment')}
+                          download
+                          className="btn-nav-outline"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          <Download size={13} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Audit History */}
+              {selectedShopDetails.audit_logs && selectedShopDetails.audit_logs.length > 0 && (
+                <div className="modal-section">
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <History size={16} /> Application Audit History
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {selectedShopDetails.audit_logs.map((log) => (
+                      <div key={log.id} style={{ padding: '0.5rem 0.75rem', borderLeft: '3px solid var(--primary-blue)', backgroundColor: 'var(--bg-subtle)', borderRadius: 4, fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                          <span>Action: {log.action}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{new Date(log.created_at).toLocaleString()}</span>
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>By: {log.actor_name || 'System / Applicant'}</div>
+                        {log.notes && <div style={{ marginTop: '0.25rem', color: 'var(--text-main)' }}>Notes: {log.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -472,6 +644,52 @@ const AdminShopApprovals = () => {
                 onClick={confirmReject}
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Request More Information */}
+      {moreInfoModalShop && (
+        <div className="admin-modal-overlay" onClick={() => setMoreInfoModalShop(null)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 style={{ margin: 0, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <HelpCircle size={20} /> Request More Information
+              </h3>
+              <button type="button" className="admin-modal-close" onClick={() => setMoreInfoModalShop(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
+                Specify what additional verification evidence or clarifications are needed from <strong>"{moreInfoModalShop.name}"</strong>. The status will be set to <em>More Information Required</em>.
+              </p>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600 }}>
+                  Information / Document Requirements (required):
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder="e.g. Please provide a clearer copy of your Mayor's Business Permit and campus authorization..."
+                  value={moreInfoReason}
+                  onChange={(e) => setMoreInfoReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button type="button" className="btn-nav-outline" onClick={() => setMoreInfoModalShop(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-order-action btn-action-accept"
+                disabled={!moreInfoReason.trim()}
+                onClick={confirmMoreInfo}
+              >
+                Send Request
               </button>
             </div>
           </div>

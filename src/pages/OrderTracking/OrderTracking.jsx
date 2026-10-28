@@ -17,9 +17,11 @@ import {
   Eye,
   Download,
   Loader2,
-  FileText
+  FileText,
+  DollarSign,
+  HelpCircle
 } from 'lucide-react';
-import { orderService, shopService } from '../../services/api';
+import { orderService, shopService, paymentService } from '../../services/api';
 import './OrderTracking.css';
 
 const RATING_LABELS = {
@@ -37,6 +39,16 @@ const OrderTracking = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [docLoadingState, setDocLoadingState] = useState({});
+
+  // Refund states
+  const [refundEligibility, setRefundEligibility] = useState(null);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState('cancelled_before_printing');
+  const [refundExplanation, setRefundExplanation] = useState('');
+  const [refundAmount, setRefundAmount] = useState('');
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+  const [cancellingRefundId, setCancellingRefundId] = useState(null);
+  const [refundToast, setRefundToast] = useState({ text: '', type: '' });
 
   const handleViewDocument = async (orderId, doc) => {
     setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'viewing' }));
@@ -69,6 +81,18 @@ const OrderTracking = () => {
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
   const [reviewError, setReviewError] = useState('');
 
+  const fetchRefundEligibility = async () => {
+    try {
+      const data = await paymentService.getRefundEligibility(id);
+      setRefundEligibility(data);
+      if (data?.remaining_refundable_balance) {
+        setRefundAmount(data.remaining_refundable_balance);
+      }
+    } catch {
+      setRefundEligibility(null);
+    }
+  };
+
   const fetchOrder = async () => {
     try {
       const data = await orderService.getOrder(id);
@@ -82,10 +106,63 @@ const OrderTracking = () => {
 
   useEffect(() => {
     fetchOrder();
+    fetchRefundEligibility();
     // 10-second polling for live status tracking
-    const interval = setInterval(fetchOrder, 10000);
+    const interval = setInterval(() => {
+      fetchOrder();
+      fetchRefundEligibility();
+    }, 10000);
     return () => clearInterval(interval);
   }, [id]);
+
+  const showRefundToast = (text, type = 'success') => {
+    setRefundToast({ text, type });
+    setTimeout(() => setRefundToast({ text: '', type: '' }), 5000);
+  };
+
+  const handleOpenRefundModal = () => {
+    if (refundEligibility?.remaining_refundable_balance) {
+      setRefundAmount(refundEligibility.remaining_refundable_balance);
+    }
+    setRefundExplanation('');
+    setRefundModalOpen(true);
+  };
+
+  const handleCreateRefund = async (e) => {
+    e.preventDefault();
+    setSubmittingRefund(true);
+    try {
+      await paymentService.createRefundRequest({
+        order_id: order.id,
+        reason: refundReason,
+        customer_explanation: refundExplanation.trim(),
+        requested_amount: parseFloat(refundAmount) || undefined
+      });
+      showRefundToast('Refund request submitted successfully. The shop owner and admin will review it.', 'success');
+      setRefundModalOpen(false);
+      await fetchRefundEligibility();
+      await fetchOrder();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to submit refund request.';
+      alert(msg);
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
+  const handleCancelRefund = async (refundId) => {
+    if (!window.confirm('Are you sure you want to cancel this pending refund request?')) return;
+    setCancellingRefundId(refundId);
+    try {
+      await paymentService.cancelRefund(refundId);
+      showRefundToast('Refund request has been cancelled.', 'info');
+      await fetchRefundEligibility();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to cancel refund request.');
+    } finally {
+      setCancellingRefundId(null);
+    }
+  };
 
   const handleCancelOrder = async () => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
@@ -93,6 +170,7 @@ const OrderTracking = () => {
     try {
       await orderService.cancelOrder(order.id, 'Cancelled by customer');
       await fetchOrder();
+      await fetchRefundEligibility();
     } catch (err) {
       alert(err.response?.data?.error || 'Could not cancel order.');
     } finally {
@@ -509,6 +587,107 @@ const OrderTracking = () => {
 
       </div>
 
+      {/* Toast Alert */}
+      {refundToast.text && (
+        <div style={{
+          backgroundColor: refundToast.type === 'success' ? '#ECFDF5' : '#EFF6FF',
+          color: refundToast.type === 'success' ? '#065F46' : 'var(--primary-blue)',
+          border: `1px solid ${refundToast.type === 'success' ? '#A7F3D0' : '#BFDBFE'}`,
+          padding: '0.85rem 1.25rem',
+          borderRadius: 8,
+          marginBottom: '1.5rem',
+          fontWeight: 600
+        }}>
+          {refundToast.text}
+        </div>
+      )}
+
+      {/* FEATURE 4: Customer Refund Management Section */}
+      {(refundEligibility?.existing_refunds?.length > 0 || refundEligibility?.eligible) && (
+        <div className="tracking-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+            <h2 className="tracking-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Refund Management
+            </h2>
+            {refundEligibility?.eligible && (
+              <button
+                type="button"
+                onClick={handleOpenRefundModal}
+                className="btn-order-action btn-action-neutral"
+                style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
+              >
+                Request a Refund
+              </button>
+            )}
+          </div>
+
+          {refundEligibility?.eligible && (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              This order is currently eligible for a refund of up to <strong>₱{parseFloat(refundEligibility.remaining_refundable_balance).toFixed(2)}</strong>.
+            </p>
+          )}
+
+          {refundEligibility?.existing_refunds?.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {refundEligibility.existing_refunds.map((ref) => (
+                <div key={ref.id} style={{
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 8,
+                  padding: '1rem',
+                  backgroundColor: 'var(--bg-subtle)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: 'var(--dark-blue)' }}>Claim #{ref.id}</span>
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        Reason: {ref.reason.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <span className="badge badge-warning" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+                      {ref.status}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                    Requested: <strong>₱{parseFloat(ref.requested_amount).toFixed(2)}</strong>
+                    {ref.approved_amount && (
+                      <span style={{ marginLeft: '1rem', color: 'var(--color-success)', fontWeight: 700 }}>
+                        Approved: ₱{parseFloat(ref.approved_amount).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+
+                  {ref.customer_explanation && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      <em>Note: "{ref.customer_explanation}"</em>
+                    </div>
+                  )}
+
+                  {ref.decision_notes && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--dark-blue)', backgroundColor: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: 6, marginBottom: '0.5rem', border: '1px solid var(--border-color)' }}>
+                      <strong>Decision Note:</strong> {ref.decision_notes}
+                    </div>
+                  )}
+
+                  {ref.status.toLowerCase() === 'pending' && (
+                    <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelRefund(ref.id)}
+                        disabled={cancellingRefundId === ref.id}
+                        style={{ color: 'var(--color-error)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+                      >
+                        {cancellingRefundId === ref.id ? 'Cancelling...' : 'Cancel Refund Request'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* FEATURE 2: Rate This Shop Section (Only on Completed Orders) */}
       {isCompleted && (
         <div className="review-card-section">
@@ -614,6 +793,91 @@ const OrderTracking = () => {
               </div>
             </form>
           )}
+        </div>
+      )}
+
+      {/* Modal: Request a Refund */}
+      {refundModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setRefundModalOpen(false)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 style={{ margin: 0, color: 'var(--dark-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Request Refund for Order #{order.order_number}
+              </h3>
+              <button type="button" className="admin-modal-close" onClick={() => setRefundModalOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleCreateRefund}>
+              <div className="admin-modal-body">
+                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+                  <div>Total Order Paid: <strong>₱{parseFloat(refundEligibility?.total_paid || order.total_amount).toFixed(2)}</strong></div>
+                  <div>Maximum Refundable Balance: <strong>₱{parseFloat(refundEligibility?.remaining_refundable_balance || 0).toFixed(2)}</strong></div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Reason for Refund:
+                  </label>
+                  <select
+                    className="form-input"
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    required
+                  >
+                    <option value="cancelled_before_printing">Customer cancelled before printing started</option>
+                    <option value="shop_rejected">Shop rejected the order</option>
+                    <option value="shop_unfulfillable">Shop cannot complete the order</option>
+                    <option value="duplicate_payment">Duplicate payment</option>
+                    <option value="incorrect_defective_printing">Incorrect or defective printing</option>
+                    <option value="payment_unconfirmed_order">Payment succeeded but order not confirmed</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Requested Amount (₱):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={refundEligibility?.remaining_refundable_balance || order.total_amount}
+                    className="form-input"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Explanation / Details (Optional):
+                  </label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    placeholder="Provide details about why you are requesting a refund..."
+                    value={refundExplanation}
+                    onChange={(e) => setRefundExplanation(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="admin-modal-footer">
+                <button type="button" className="btn-nav-outline" onClick={() => setRefundModalOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-order-action btn-action-accept"
+                  disabled={submittingRefund}
+                >
+                  {submittingRefund ? 'Submitting...' : 'Submit Refund Claim'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

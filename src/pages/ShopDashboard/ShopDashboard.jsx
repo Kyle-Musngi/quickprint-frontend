@@ -13,14 +13,18 @@ import {
   AlertTriangle,
   Star,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  Check,
+  X
 } from 'lucide-react';
-import { analyticsService } from '../../services/api';
+import { analyticsService, orderService } from '../../services/api';
 import ShopOrders from '../ShopOrders/ShopOrders';
 import ShopServices from '../ShopServices/ShopServices';
 import ShopAnalytics from '../ShopAnalytics/ShopAnalytics';
 import ShopSettings from '../ShopSettings/ShopSettings';
 import ShopReviewsTab from './ShopReviewsTab';
+import ShopRefundsTab from './ShopRefundsTab';
 import { formatTime12Hour } from '../../utils/formatTime';
 import { formatOrderStatus, getOrderStatusBadge } from '../../utils/formatOrderStatus';
 import './ShopDashboard.css';
@@ -36,6 +40,7 @@ const ShopDashboard = () => {
   const [isNoShop, setIsNoShop] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [visitedTabs, setVisitedTabs] = useState(() => new Set([initialTab]));
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   useEffect(() => {
     if (queryTab) {
@@ -70,6 +75,32 @@ const ShopDashboard = () => {
   useEffect(() => {
     fetchOverview();
   }, []);
+
+  const handleQuickAccept = async (orderId) => {
+    setActionLoadingId(orderId);
+    try {
+      await orderService.acceptOrder(orderId);
+      await fetchOverview();
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.detail || 'Failed to accept order.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleQuickReject = async (orderId) => {
+    const reason = window.prompt('Please provide a reason for declining this order:');
+    if (!reason || !reason.trim()) return;
+    setActionLoadingId(orderId);
+    try {
+      await orderService.rejectOrder(orderId, reason.trim());
+      await fetchOverview();
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.detail || 'Failed to reject order.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -127,6 +158,7 @@ const ShopDashboard = () => {
   const isPending = shop.status === 'pending';
   const isSuspended = shop.status === 'suspended';
   const isRejected = shop.status === 'rejected';
+  const pendingRefunds = status_counts?.refund_requests ?? overview?.pending_refunds_count ?? 0;
 
   return (
     <div className="shop-dashboard-page">
@@ -182,6 +214,14 @@ const ShopDashboard = () => {
           aria-pressed={activeTab === 'orders'}
         >
           <Package size={16} /> Orders Queue ({status_counts?.submitted || 0} New)
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('refunds')}
+          className={`portal-nav-link ${activeTab === 'refunds' ? 'active' : ''}`}
+          aria-pressed={activeTab === 'refunds'}
+        >
+          <DollarSign size={16} /> Refunds {pendingRefunds > 0 && `(${pendingRefunds})`}
         </button>
         <button
           type="button"
@@ -250,7 +290,7 @@ const ShopDashboard = () => {
           )}
 
           <div className="shop-stats-grid">
-            <div className="stat-card">
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
               <div className="stat-icon orange">
                 <Clock size={24} />
               </div>
@@ -260,7 +300,7 @@ const ShopDashboard = () => {
               </div>
             </div>
 
-            <div className="stat-card">
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
               <div className="stat-icon blue">
                 <Printer size={24} />
               </div>
@@ -272,13 +312,23 @@ const ShopDashboard = () => {
               </div>
             </div>
 
-            <div className="stat-card">
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('orders')}>
               <div className="stat-icon green">
                 <CheckCircle2 size={24} />
               </div>
               <div>
                 <div className="stat-num">{status_counts?.ready_for_pickup || 0}</div>
                 <div className="stat-label">Ready for Pickup</div>
+              </div>
+            </div>
+
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => switchTab('refunds')}>
+              <div className="stat-icon purple">
+                <HelpCircle size={24} />
+              </div>
+              <div>
+                <div className="stat-num">{pendingRefunds}</div>
+                <div className="stat-label">Refund Claims</div>
               </div>
             </div>
 
@@ -322,42 +372,72 @@ const ShopDashboard = () => {
                       <th>Schedule</th>
                       <th>Status</th>
                       <th>Total</th>
-                      <th>Action</th>
+                      <th>Direct Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {overview.recent_orders.map((ord) => (
-                      <tr key={ord.id}>
-                        <td><strong>{ord.order_number}</strong></td>
-                        <td>{ord.customer__first_name} {ord.customer__last_name}</td>
-                        <td>
-                          {ord.pickup_code ? (
-                            <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: 4 }}>
-                              {ord.pickup_code}
+                    {overview.recent_orders.map((ord) => {
+                      const isOrderPending = ['submitted', 'pending_acceptance', 'received'].includes(ord.status);
+                      return (
+                        <tr key={ord.id}>
+                          <td><strong>{ord.order_number}</strong></td>
+                          <td>{ord.customer__first_name} {ord.customer__last_name}</td>
+                          <td>
+                            {ord.pickup_code ? (
+                              <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: 4 }}>
+                                {ord.pickup_code}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>Not issued</span>
+                            )}
+                          </td>
+                          <td>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</td>
+                          <td>
+                            <span className={`badge ${getOrderStatusBadge(ord.status)}`}>
+                              {formatOrderStatus(ord.status)}
                             </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>Not issued</span>
-                          )}
-                        </td>
-                        <td>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</td>
-                        <td>
-                          <span className={`badge ${getOrderStatusBadge(ord.status)}`}>
-                            {formatOrderStatus(ord.status)}
-                          </span>
-                        </td>
-                        <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() => switchTab('orders')}
-                            className="btn-nav-outline"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
-                          >
-                            Process
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
+                          <td>
+                            <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                              {isOrderPending ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickAccept(ord.id)}
+                                    disabled={actionLoadingId === ord.id}
+                                    className="btn-order-action btn-action-accept"
+                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                    title="Quick Accept Order"
+                                  >
+                                    <Check size={14} /> Accept
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickReject(ord.id)}
+                                    disabled={actionLoadingId === ord.id}
+                                    className="btn-order-action btn-action-reject"
+                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                    title="Quick Reject Order"
+                                  >
+                                    <X size={14} /> Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => switchTab('orders')}
+                                  className="btn-nav-outline"
+                                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                                >
+                                  Manage in Queue &rarr;
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -368,6 +448,12 @@ const ShopDashboard = () => {
         {visitedTabs.has('orders') && (
           <div style={{ display: activeTab === 'orders' ? 'block' : 'none' }}>
             <ShopOrders />
+          </div>
+        )}
+
+        {visitedTabs.has('refunds') && (
+          <div style={{ display: activeTab === 'refunds' ? 'block' : 'none' }}>
+            <ShopRefundsTab />
           </div>
         )}
 
