@@ -47,3 +47,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .admin-dashboard-page {
+    padding: 1.5rem 1rem 3.5rem;
+  }
+  .admin-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .admin-title {
+    font-size: 1.75rem;
+  }
+  .admin-header-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}

@@ -269,25 +269,13 @@ const CustomerDashboard = () => {
                       </td>
                       <td>
                         {ord.queue_info?.queue_number || ord.queue_info?.queue_number_display ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <span style={{
-                              fontWeight: 700,
-                              color: ord.queue_info.is_active ? '#2563EB' : 'var(--text-secondary)',
-                              fontSize: '0.85rem'
-                            }}>
+                          <div className="queue-pill-container">
+                            <span className="queue-ticket-tag">
                               Queue {ord.queue_info.queue_number_display || `#${ord.queue_info.queue_number}`}
                             </span>
-                            {ord.queue_info.is_active && ord.queue_info.position ? (
-                              <span style={{
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                background: '#EFF6FF',
-                                color: '#1D4ED8',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: 4,
-                                border: '1px solid #BFDBFE'
-                              }}>
-                                Pos {ord.queue_info.position}
+                            {ord.queue_info.is_active && ord.queue_info.position != null ? (
+                              <span className="queue-position-tag">
+                                Position {ord.queue_info.position}
                               </span>
                             ) : null}
                           </div>

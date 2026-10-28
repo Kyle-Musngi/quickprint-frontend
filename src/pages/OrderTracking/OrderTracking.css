@@ -14,6 +14,106 @@
   gap: 1rem;
 }
 
+.tracking-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tracking-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #E2E8F0);
+  color: var(--text-main, #1E293B);
+  height: 40px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 0 1rem;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.tracking-back-btn:hover {
+  background-color: var(--accent-light, #EFF6FF);
+  border-color: var(--primary-blue, #2563EB);
+  color: var(--primary-blue, #2563EB);
+  transform: translateX(-2px);
+}
+
+.tracking-back-btn:focus-visible {
+  outline: 2px solid var(--primary-blue, #2563EB);
+  outline-offset: 2px;
+}
+
+[data-theme='dark'] .tracking-back-btn {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme='dark'] .tracking-back-btn:hover {
+  background-color: rgba(37, 99, 235, 0.15);
+  border-color: #3B82F6;
+  color: #60A5FA;
+}
+
+.tracking-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+/* Queue Number & Position Pill Component */
+.queue-pill-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.queue-ticket-tag {
+  font-weight: 700;
+  color: var(--primary-blue, #2563EB);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.queue-position-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #BFDBFE;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+[data-theme='dark'] .queue-ticket-tag {
+  color: #60A5FA;
+}
+
+[data-theme='dark'] .queue-position-tag {
+  background-color: rgba(37, 99, 235, 0.2);
+  color: #93C5FD;
+  border-color: rgba(147, 197, 253, 0.3);
+}
+
 .tracking-title {
   font-size: 2.25rem;
   font-weight: 800;
@@ -28,7 +128,7 @@
 .tracking-sub {
   font-size: 0.95rem;
   color: var(--text-secondary, #64748B);
-  margin-top: 0.2rem;
+  margin-top: 0;
 }
 
 .tracking-actions {
@@ -429,7 +529,34 @@
   margin-top: 1rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+  .order-tracking-page {
+    padding: 1.5rem 1rem 3.5rem;
+  }
+  .tracking-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+  .tracking-header-left {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .tracking-title {
+    font-size: 1.75rem;
+  }
+  .tracking-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .tracking-actions .btn-nav-outline {
+    flex: 1 1 auto;
+    min-width: 110px;
+    padding: 0 0.75rem;
+  }
+  .printing-queue-card {
+    padding: 1.25rem 1rem;
+  }
   .pickup-code-banner {
     flex-direction: column;
     text-align: center;
@@ -539,6 +666,13 @@
 @media (max-width: 768px) {
   .queue-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .queue-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 }
 

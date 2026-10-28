@@ -201,8 +201,15 @@ const CustomerOrders = () => {
                     <td>
                       <strong>{ord.order_number}</strong>
                       {ord.queue_info?.queue_number_display && (
-                        <div style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 700, marginTop: '2px' }}>
-                          Queue {ord.queue_info.queue_number_display} {ord.queue_info.is_active && ord.queue_info.position ? `(Pos ${ord.queue_info.position})` : ''}
+                        <div className="queue-pill-container" style={{ marginTop: '4px' }}>
+                          <span className="queue-ticket-tag" style={{ fontSize: '0.74rem' }}>
+                            Queue {ord.queue_info.queue_number_display}
+                          </span>
+                          {ord.queue_info.is_active && ord.queue_info.position != null ? (
+                            <span className="queue-position-tag" style={{ fontSize: '0.68rem', padding: '0.12rem 0.4rem' }}>
+                              Position {ord.queue_info.position}
+                            </span>
+                          ) : null}
                         </div>
                       )}
                     </td>

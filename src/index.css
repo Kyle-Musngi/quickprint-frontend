@@ -17,10 +17,19 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
 }
 
 #root {

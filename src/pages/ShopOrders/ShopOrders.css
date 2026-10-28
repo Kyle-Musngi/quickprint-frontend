@@ -343,6 +343,8 @@
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .shop-queue-tag.tag-active {
@@ -364,6 +366,8 @@
   border-radius: 10px;
   font-size: 0.68rem;
   font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 

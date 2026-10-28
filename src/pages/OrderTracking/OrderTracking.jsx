@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
+  ArrowLeft,
   Clock,
   CheckCircle2,
   Store,
@@ -37,6 +38,15 @@ const RATING_LABELS = {
 const OrderTracking = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/customer/orders');
+    }
+  };
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -333,9 +343,34 @@ const OrderTracking = () => {
   return (
     <div className="order-tracking-page">
       <div className="tracking-header">
-        <div>
-          <h1 className="tracking-title">Track Order</h1>
-          <p className="tracking-sub">Order #{order.order_number}</p>
+        <div className="tracking-header-left">
+          <button
+            type="button"
+            className="tracking-back-btn"
+            onClick={handleBack}
+            aria-label="Back to previous page"
+          >
+            <ArrowLeft size={18} />
+            <span>Back</span>
+          </button>
+          <div>
+            <h1 className="tracking-title">Track Order</h1>
+            <div className="tracking-meta-row">
+              <span className="tracking-sub">Order #{order.order_number}</span>
+              {order.queue_info && (order.queue_info.queue_number || order.queue_info.queue_number_display) && (
+                <div className="queue-pill-container">
+                  <span className="queue-ticket-tag">
+                    Queue {order.queue_info.queue_number_display || `#${order.queue_info.queue_number}`}
+                  </span>
+                  {order.queue_info.is_active && order.queue_info.position != null && (
+                    <span className="queue-position-tag">
+                      Position {order.queue_info.position}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div className="tracking-actions">
           <button
@@ -480,16 +515,18 @@ const OrderTracking = () => {
             {/* 1. Permanent Queue Number */}
             <div className="queue-metric-box metric-ticket">
               <div className="metric-label">Queue Number</div>
-              <div className="metric-val ticket-number">{order.queue_info.queue_number_display || `#${order.queue_info.queue_number}`}</div>
+              <div className="metric-val ticket-number" style={{ whiteSpace: 'nowrap' }}>
+                {order.queue_info.queue_number_display || `#${order.queue_info.queue_number}`}
+              </div>
               <div className="metric-hint">Your permanent shop ticket for today</div>
             </div>
 
             {/* 2. Dynamic Queue Position */}
             <div className="queue-metric-box metric-position">
               <div className="metric-label">Current Position</div>
-              <div className="metric-val position-number">
-                {order.queue_info.is_active ? (
-                  order.queue_info.position === 1 ? '1st' : `${order.queue_info.position}`
+              <div className="metric-val position-number" style={{ whiteSpace: 'nowrap' }}>
+                {order.queue_info.is_active && order.queue_info.position != null ? (
+                  order.queue_info.position === 1 ? '1st (Next)' : `Position ${order.queue_info.position}`
                 ) : '—'}
               </div>
               <div className="metric-hint">
