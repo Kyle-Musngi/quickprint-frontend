@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { analyticsService, paymentService } from '../../services/api';
 import { formatOrderStatus, getOrderStatusBadge } from '../../utils/formatOrderStatus';
+import { formatCurrency, parseAmount } from '../../utils/formatCurrency';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -61,7 +62,9 @@ const AdminDashboard = () => {
   const handleOpenAction = (type, refund) => {
     setActionModal({ type, refund });
     setActionNotes('');
-    setApprovedAmount(refund.requested_amount);
+    const rawReq = refund.amount_requested ?? refund.requested_amount;
+    const parsed = parseAmount(rawReq);
+    setApprovedAmount(parsed !== null ? parsed.toFixed(2) : '');
   };
 
   const handleConfirmAction = async () => {
@@ -72,15 +75,30 @@ const AdminDashboard = () => {
       return;
     }
 
+    const rawReq = refund.amount_requested ?? refund.requested_amount;
+    const maxEligible = parseAmount(rawReq);
+
+    let finalApprovedAmount = null;
+    if (type === 'approve') {
+      const parsedApproved = parseAmount(approvedAmount);
+      if (parsedApproved === null || parsedApproved <= 0) {
+        alert('Please specify a valid approved refund amount greater than ₱0.00.');
+        return;
+      }
+      if (maxEligible !== null && parsedApproved > maxEligible) {
+        alert(`Approved refund amount (${formatCurrency(parsedApproved)}) cannot exceed the eligible requested amount (${formatCurrency(maxEligible)}).`);
+        return;
+      }
+      finalApprovedAmount = parsedApproved;
+    }
+
     setActionLoadingId(refund.id);
     try {
       const payload = {
         action: type,
-        decision_notes: actionNotes.trim()
+        decision_notes: actionNotes.trim(),
+        amount_approved: finalApprovedAmount
       };
-      if (type === 'approve') {
-        payload.amount = parseFloat(approvedAmount) || parseFloat(refund.requested_amount);
-      }
       await paymentService.processRefundAction(refund.id, payload);
       setActionModal(null);
       await fetchMetrics();
@@ -444,7 +462,7 @@ const AdminDashboard = () => {
                           </div>
                         )}
                       </td>
-                      <td><strong>₱{parseFloat(ref.requested_amount).toFixed(2)}</strong></td>
+                      <td><strong>{formatCurrency(ref.amount_requested ?? ref.requested_amount)}</strong></td>
                       <td>
                         <span className={`badge ${ref.status === 'completed' || ref.status === 'approved' ? 'badge-success' : ref.status === 'rejected' ? 'badge-error' : 'badge-warning'}`} style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.75rem' }}>
                           {ref.status}
@@ -475,7 +493,7 @@ const AdminDashboard = () => {
                             </>
                           ) : (
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                              {ref.approved_amount ? `₱${parseFloat(ref.approved_amount).toFixed(2)}` : 'Closed'}
+                              {(ref.amount_approved !== null && ref.amount_approved !== undefined) || ref.approved_amount ? formatCurrency(ref.amount_approved ?? ref.approved_amount) : 'Closed'}
                             </span>
                           )}
                         </div>
@@ -503,7 +521,7 @@ const AdminDashboard = () => {
             </div>
             <div className="admin-modal-body">
               <p style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
-                Order #{actionModal.refund.order_number || actionModal.refund.order} — Requested amount: <strong>₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}</strong>
+                Order #{actionModal.refund.order_number || actionModal.refund.order} — Requested amount: <strong>{formatCurrency(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount)}</strong>
               </p>
 
               {actionModal.type === 'approve' && (
@@ -514,12 +532,15 @@ const AdminDashboard = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    max={parseAmount(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount) || undefined}
                     className="form-input"
                     value={approvedAmount}
                     onChange={(e) => setApprovedAmount(e.target.value)}
+                    required
                   />
                   <small style={{ color: 'var(--text-muted)' }}>
-                    Maximum eligible balance: ₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}
+                    Maximum eligible balance: {formatCurrency(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount)}
                   </small>
                 </div>
               )}

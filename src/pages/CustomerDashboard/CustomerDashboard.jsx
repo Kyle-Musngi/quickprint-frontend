@@ -23,6 +23,7 @@ import {
   formatRefundStatus,
   getRefundStatusBadge
 } from '../../utils/formatOrderStatus';
+import { formatCurrency, parseAmount } from '../../utils/formatCurrency';
 import './CustomerDashboard.css';
 
 const CustomerDashboard = () => {
@@ -442,12 +443,14 @@ const CustomerDashboard = () => {
               <tbody>
                 {refundRequests.map((ref) => {
                   const statusBadge = getRefundStatusBadge(ref.status);
-                  const requestedAmt = parseFloat(ref.amount_requested);
-                  const formattedRequested = !isNaN(requestedAmt) ? `₱${requestedAmt.toFixed(2)}` : '—';
-                  const approvedAmt = ref.amount_approved !== null && ref.amount_approved !== undefined ? parseFloat(ref.amount_approved) : null;
-                  const formattedApproved = approvedAmt !== null && !isNaN(approvedAmt) && approvedAmt > 0
-                    ? `₱${approvedAmt.toFixed(2)}`
-                    : (['approved', 'completed', 'refunded'].includes(String(ref.status).toLowerCase()) ? formattedRequested : '—');
+                  const reqAmt = ref.amount_requested ?? ref.requested_amount;
+                  const formattedRequested = formatCurrency(reqAmt);
+                  const appAmt = ref.amount_approved ?? ref.approved_amount;
+                  const parsedApp = parseAmount(appAmt);
+                  const isSettled = ['approved', 'completed', 'refunded'].includes(String(ref.status || '').toLowerCase());
+                  const formattedApproved = parsedApp !== null && parsedApp > 0
+                    ? formatCurrency(parsedApp)
+                    : (isSettled ? formattedRequested : '—');
                   const dateStr = ref.created_at
                     ? new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : '—';

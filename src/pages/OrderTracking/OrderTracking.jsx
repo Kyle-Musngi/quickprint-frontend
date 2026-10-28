@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { orderService, shopService, paymentService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency, parseAmount } from '../../utils/formatCurrency';
 import './OrderTracking.css';
 
 const RATING_LABELS = {
@@ -139,10 +140,14 @@ const OrderTracking = () => {
 
   const handleOpenRefundModal = () => {
     const remainingBal = refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable;
-    if (remainingBal !== undefined && remainingBal !== null && Number(remainingBal) > 0) {
-      setRefundAmount(String(remainingBal));
-    } else if (order?.total_amount) {
-      setRefundAmount(String(order.total_amount));
+    const parsedRem = parseAmount(remainingBal);
+    const parsedTotal = parseAmount(order?.total_amount);
+    if (parsedRem !== null && parsedRem > 0) {
+      setRefundAmount(parsedRem.toFixed(2));
+    } else if (parsedTotal !== null && parsedTotal > 0) {
+      setRefundAmount(parsedTotal.toFixed(2));
+    } else {
+      setRefundAmount('');
     }
     setRefundExplanation('');
     setRefundModalOpen(true);
@@ -150,6 +155,17 @@ const OrderTracking = () => {
 
   const handleCreateRefund = async (e) => {
     e.preventDefault();
+    const parsedAmount = parseAmount(refundAmount);
+    if (parsedAmount === null || parsedAmount <= 0) {
+      alert('Please enter a valid refund amount greater than ₱0.00.');
+      return;
+    }
+    const maxAllowed = parseAmount(refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? order?.total_amount);
+    if (maxAllowed !== null && parsedAmount > maxAllowed) {
+      alert(`Requested amount (${formatCurrency(parsedAmount)}) cannot exceed the maximum eligible balance (${formatCurrency(maxAllowed)}).`);
+      return;
+    }
+
     setSubmittingRefund(true);
     try {
       const res = await paymentService.createRefundRequest({
@@ -157,7 +173,8 @@ const OrderTracking = () => {
         reason: refundReason,
         explanation: refundExplanation.trim(),
         customer_explanation: refundExplanation.trim(),
-        amount_requested: parseFloat(refundAmount) || undefined
+        amount_requested: parsedAmount,
+        requested_amount: parsedAmount
       });
       const refId = res?.refund_reference || `ID #${res?.id || ''}`;
       showRefundToast(`Refund request submitted successfully (${refId}). It is now under review.`, 'success');
@@ -702,7 +719,7 @@ const OrderTracking = () => {
                 <div>
                   <div style={{ fontWeight: 700, color: '#1E3A8A' }}>Eligible for Refund</div>
                   <div style={{ fontSize: '0.85rem', color: '#3B82F6' }}>
-                    Maximum refundable balance: <strong>₱{parseFloat(refundEligibility.remaining_refundable_balance ?? refundEligibility.remaining_refundable ?? order.total_amount).toFixed(2)}</strong> (Total Paid: ₱{parseFloat(refundEligibility.total_paid || order.total_amount).toFixed(2)})
+                    Maximum refundable balance: <strong>{formatCurrency(refundEligibility.remaining_refundable_balance ?? refundEligibility.remaining_refundable ?? order.total_amount)}</strong> (Total Paid: {formatCurrency(refundEligibility.total_paid ?? order.total_amount)})
                   </div>
                 </div>
                 <button
@@ -751,11 +768,11 @@ const OrderTracking = () => {
 
                   <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.875rem', color: '#1E293B', marginBottom: '0.5rem' }}>
                     <div>
-                      Requested: <strong>₱{parseFloat(ref.amount_requested || ref.requested_amount).toFixed(2)}</strong>
+                      Requested: <strong>{formatCurrency(ref.amount_requested ?? ref.requested_amount)}</strong>
                     </div>
-                    {ref.amount_approved > 0 && (
+                    {((ref.amount_approved !== null && ref.amount_approved !== undefined && ref.amount_approved > 0) || (ref.approved_amount && ref.approved_amount > 0)) && (
                       <div style={{ color: '#059669', fontWeight: 700 }}>
-                        Approved: ₱{parseFloat(ref.amount_approved).toFixed(2)}
+                        Approved: {formatCurrency(ref.amount_approved ?? ref.approved_amount)}
                       </div>
                     )}
                     <div style={{ color: '#64748B', fontSize: '0.8rem' }}>
@@ -959,16 +976,16 @@ const OrderTracking = () => {
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>5. Order Total & Paid</label>
                     <div style={{ fontWeight: 700, color: '#1E3A8A', fontSize: '1rem' }}>
-                      ₱{parseFloat(order.total_amount).toFixed(2)}
+                      {formatCurrency(order.total_amount)}
                       <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#3B82F6', marginLeft: '0.5rem' }}>
-                        (Paid: ₱{parseFloat(refundEligibility?.total_paid || order.total_amount).toFixed(2)})
+                        (Paid: {formatCurrency(refundEligibility?.total_paid ?? order.total_amount)})
                       </span>
                     </div>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>Max Refundable Balance</label>
                     <div style={{ fontWeight: 700, color: '#059669', fontSize: '1rem' }}>
-                      ₱{parseFloat(refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? order.total_amount).toFixed(2)}
+                      {formatCurrency(refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? order.total_amount)}
                     </div>
                   </div>
                 </div>

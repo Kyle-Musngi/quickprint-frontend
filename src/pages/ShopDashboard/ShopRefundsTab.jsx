@@ -11,6 +11,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { paymentService } from '../../services/api';
+import { formatCurrency, parseAmount } from '../../utils/formatCurrency';
 
 const ShopRefundsTab = () => {
   const [refunds, setRefunds] = useState([]);
@@ -47,7 +48,9 @@ const ShopRefundsTab = () => {
   const handleOpenAction = (type, refund) => {
     setActionModal({ type, refund });
     setActionNotes('');
-    setApprovedAmount(refund.requested_amount);
+    const rawReq = refund.amount_requested ?? refund.requested_amount;
+    const parsed = parseAmount(rawReq);
+    setApprovedAmount(parsed !== null ? parsed.toFixed(2) : '');
   };
 
   const handleConfirmAction = async () => {
@@ -58,15 +61,30 @@ const ShopRefundsTab = () => {
       return;
     }
 
+    const rawReq = refund.amount_requested ?? refund.requested_amount;
+    const maxEligible = parseAmount(rawReq);
+
+    let finalApprovedAmount = null;
+    if (type === 'approve') {
+      const parsedApproved = parseAmount(approvedAmount);
+      if (parsedApproved === null || parsedApproved <= 0) {
+        alert('Please specify a valid approved refund amount greater than ₱0.00.');
+        return;
+      }
+      if (maxEligible !== null && parsedApproved > maxEligible) {
+        alert(`Approved refund amount (${formatCurrency(parsedApproved)}) cannot exceed the eligible requested amount (${formatCurrency(maxEligible)}).`);
+        return;
+      }
+      finalApprovedAmount = parsedApproved;
+    }
+
     setActionLoadingId(refund.id);
     try {
       const payload = {
         action: type,
-        decision_notes: actionNotes.trim()
+        decision_notes: actionNotes.trim(),
+        amount_approved: finalApprovedAmount
       };
-      if (type === 'approve') {
-        payload.amount = parseFloat(approvedAmount) || parseFloat(refund.requested_amount);
-      }
 
       await paymentService.processRefundAction(refund.id, payload);
       setActionModal(null);
@@ -184,7 +202,7 @@ const ShopRefundsTab = () => {
                     )}
                   </td>
                   <td style={{ padding: '0.9rem 1rem', fontWeight: 700 }}>
-                    ₱{parseFloat(refund.requested_amount).toFixed(2)}
+                    {formatCurrency(refund.amount_requested ?? refund.requested_amount)}
                   </td>
                   <td style={{ padding: '0.9rem 1rem' }}>
                     <span className={`badge ${getStatusBadge(refund.status)}`} style={{ padding: '0.25rem 0.6rem', borderRadius: 6, fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700 }}>
@@ -252,13 +270,13 @@ const ShopRefundsTab = () => {
                 <h4>Claim Overview</h4>
                 <p><strong>Status:</strong> <span style={{ textTransform: 'uppercase', fontWeight: 700 }}>{selectedRefund.status}</span></p>
                 <p><strong>Reason:</strong> {selectedRefund.reason}</p>
-                <p><strong>Customer Explanation:</strong> {selectedRefund.customer_explanation || 'None provided'}</p>
-                <p><strong>Requested Amount:</strong> ₱{parseFloat(selectedRefund.requested_amount).toFixed(2)}</p>
-                {selectedRefund.approved_amount && (
-                  <p><strong>Approved / Processed Amount:</strong> ₱{parseFloat(selectedRefund.approved_amount).toFixed(2)}</p>
-                )}
-                {selectedRefund.decision_notes && (
-                  <p><strong>Decision Notes:</strong> {selectedRefund.decision_notes}</p>
+                <p><strong>Customer Explanation:</strong> {selectedRefund.customer_explanation || selectedRefund.explanation || 'None provided'}</p>
+                <p><strong>Requested Amount:</strong> {formatCurrency(selectedRefund.amount_requested ?? selectedRefund.requested_amount)}</p>
+                {(selectedRefund.amount_approved !== null && selectedRefund.amount_approved !== undefined && selectedRefund.amount_approved > 0) || (selectedRefund.approved_amount && selectedRefund.approved_amount > 0) ? (
+                  <p><strong>Approved / Processed Amount:</strong> {formatCurrency(selectedRefund.amount_approved ?? selectedRefund.approved_amount)}</p>
+                ) : null}
+                {(selectedRefund.decision_notes || selectedRefund.decision_reason) && (
+                  <p><strong>Decision Notes:</strong> {selectedRefund.decision_notes || selectedRefund.decision_reason}</p>
                 )}
                 <p><strong>Submitted On:</strong> {new Date(selectedRefund.created_at).toLocaleString()}</p>
               </div>
@@ -304,7 +322,7 @@ const ShopRefundsTab = () => {
             </div>
             <div className="admin-modal-body">
               <p style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
-                Order #{actionModal.refund.order_number || actionModal.refund.order} — Requested amount: <strong>₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}</strong>
+                Order #{actionModal.refund.order_number || actionModal.refund.order} — Requested amount: <strong>{formatCurrency(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount)}</strong>
               </p>
 
               {actionModal.type === 'approve' && (
@@ -315,12 +333,15 @@ const ShopRefundsTab = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    max={parseAmount(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount) || undefined}
                     className="form-input"
                     value={approvedAmount}
                     onChange={(e) => setApprovedAmount(e.target.value)}
+                    required
                   />
                   <small style={{ color: 'var(--text-muted)' }}>
-                    Maximum eligible balance: ₱{parseFloat(actionModal.refund.requested_amount).toFixed(2)}
+                    Maximum eligible balance: {formatCurrency(actionModal.refund.amount_requested ?? actionModal.refund.requested_amount)}
                   </small>
                 </div>
               )}

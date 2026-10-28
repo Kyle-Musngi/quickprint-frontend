@@ -326,11 +326,21 @@ export const paymentService = {
     return res.data;
   },
   processRefundAction: async (id, action, reason = '', amountApproved = null) => {
-    const res = await api.post(`/payments/refunds/${id}/action/`, {
-      action,
-      decision_reason: reason,
-      amount_approved: amountApproved
-    });
+    let payload;
+    if (typeof action === 'object' && action !== null) {
+      payload = {
+        action: action.action,
+        decision_reason: action.decision_reason || action.decision_notes || action.reason || '',
+        amount_approved: action.amount_approved !== undefined ? action.amount_approved : (action.amount !== undefined ? action.amount : null)
+      };
+    } else {
+      payload = {
+        action,
+        decision_reason: reason,
+        amount_approved: amountApproved
+      };
+    }
+    const res = await api.post(`/payments/refunds/${id}/action/`, payload);
     return res.data;
   }
 };
