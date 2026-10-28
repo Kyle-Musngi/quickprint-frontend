@@ -22,6 +22,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { orderService, shopService, paymentService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import './OrderTracking.css';
 
 const RATING_LABELS = {
@@ -34,6 +35,7 @@ const RATING_LABELS = {
 
 const OrderTracking = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -43,7 +45,7 @@ const OrderTracking = () => {
   // Refund states
   const [refundEligibility, setRefundEligibility] = useState(null);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
-  const [refundReason, setRefundReason] = useState('cancelled_before_printing');
+  const [refundReason, setRefundReason] = useState('wrong_item');
   const [refundExplanation, setRefundExplanation] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
   const [submittingRefund, setSubmittingRefund] = useState(false);
@@ -85,8 +87,9 @@ const OrderTracking = () => {
     try {
       const data = await paymentService.getRefundEligibility(id);
       setRefundEligibility(data);
-      if (data?.remaining_refundable_balance) {
-        setRefundAmount(data.remaining_refundable_balance);
+      const remainingBal = data?.remaining_refundable_balance ?? data?.remaining_refundable;
+      if (remainingBal !== undefined && remainingBal !== null) {
+        setRefundAmount(String(remainingBal));
       }
     } catch {
       setRefundEligibility(null);
@@ -121,8 +124,11 @@ const OrderTracking = () => {
   };
 
   const handleOpenRefundModal = () => {
-    if (refundEligibility?.remaining_refundable_balance) {
-      setRefundAmount(refundEligibility.remaining_refundable_balance);
+    const remainingBal = refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable;
+    if (remainingBal !== undefined && remainingBal !== null && Number(remainingBal) > 0) {
+      setRefundAmount(String(remainingBal));
+    } else if (order?.total_amount) {
+      setRefundAmount(String(order.total_amount));
     }
     setRefundExplanation('');
     setRefundModalOpen(true);
@@ -132,13 +138,15 @@ const OrderTracking = () => {
     e.preventDefault();
     setSubmittingRefund(true);
     try {
-      await paymentService.createRefundRequest({
+      const res = await paymentService.createRefundRequest({
         order_id: order.id,
         reason: refundReason,
+        explanation: refundExplanation.trim(),
         customer_explanation: refundExplanation.trim(),
-        requested_amount: parseFloat(refundAmount) || undefined
+        amount_requested: parseFloat(refundAmount) || undefined
       });
-      showRefundToast('Refund request submitted successfully. The shop owner and admin will review it.', 'success');
+      const refId = res?.refund_reference || `ID #${res?.id || ''}`;
+      showRefundToast(`Refund request submitted successfully (${refId}). It is now under review.`, 'success');
       setRefundModalOpen(false);
       await fetchRefundEligibility();
       await fetchOrder();
@@ -286,13 +294,24 @@ const OrderTracking = () => {
           <h1 className="tracking-title">Track Order</h1>
           <p className="tracking-sub">Order #{order.order_number}</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={fetchOrder} className="btn-nav-outline" title="Refresh status">
             <RotateCcw size={16} /> Refresh
           </button>
           <Link to={`/order-summary/${order.id}`} className="btn-nav-outline">
             <Receipt size={16} /> Receipt
           </Link>
+          {order.payment_status === 'paid' && (
+            <button
+              type="button"
+              onClick={handleOpenRefundModal}
+              className="btn-order-action btn-action-neutral"
+              title="Request a refund for this order"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+            >
+              <DollarSign size={16} /> Request Refund
+            </button>
+          )}
         </div>
       </div>
 
@@ -602,80 +621,130 @@ const OrderTracking = () => {
         </div>
       )}
 
-      {/* FEATURE 4: Customer Refund Management Section */}
-      {(refundEligibility?.existing_refunds?.length > 0 || refundEligibility?.eligible) && (
-        <div className="tracking-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-            <h2 className="tracking-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Refund Management
-            </h2>
-            {refundEligibility?.eligible && (
-              <button
-                type="button"
-                onClick={handleOpenRefundModal}
-                className="btn-order-action btn-action-neutral"
-                style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
-              >
-                Request a Refund
-              </button>
-            )}
-          </div>
-
-          {refundEligibility?.eligible && (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              This order is currently eligible for a refund of up to <strong>₱{parseFloat(refundEligibility.remaining_refundable_balance).toFixed(2)}</strong>.
-            </p>
+      {/* FEATURE 4: Customer Refund Management Section (Always Accessible) */}
+      <div className="tracking-card" id="refund-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <h2 className="tracking-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DollarSign size={20} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Refund Management
+          </h2>
+          {order.payment_status === 'paid' && (refundEligibility?.eligible ?? true) && (
+            <button
+              type="button"
+              onClick={handleOpenRefundModal}
+              className="btn-order-action btn-action-neutral"
+              style={{ padding: '0.45rem 1rem', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <DollarSign size={16} /> Request a Refund
+            </button>
           )}
+        </div>
 
-          {refundEligibility?.existing_refunds?.length > 0 ? (
+        {order.payment_status !== 'paid' ? (
+          <div style={{
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: 8,
+            padding: '1rem 1.25rem',
+            color: '#475569',
+            fontSize: '0.9rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+              <span style={{ fontWeight: 600 }}>Payment Status:</span>
+              <span className={`badge badge-${order.payment_status === 'failed' ? 'danger' : 'warning'}`} style={{ textTransform: 'capitalize' }}>
+                {order.payment_status ? order.payment_status.replace(/_/g, ' ') : 'Pending Payment'}
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748B' }}>
+              Refund requests are available for completed payments. If you encounter any issue after completing payment, you can submit a refund claim directly from this section.
+            </p>
+          </div>
+        ) : (
+          <>
+            {refundEligibility?.eligible ? (
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '0.85rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#1E3A8A' }}>Eligible for Refund</div>
+                  <div style={{ fontSize: '0.85rem', color: '#3B82F6' }}>
+                    Maximum refundable balance: <strong>₱{parseFloat(refundEligibility.remaining_refundable_balance ?? refundEligibility.remaining_refundable ?? order.total_amount).toFixed(2)}</strong> (Total Paid: ₱{parseFloat(refundEligibility.total_paid || order.total_amount).toFixed(2)})
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenRefundModal}
+                  className="btn-order-action btn-action-accept"
+                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
+                >
+                  File Refund Request
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '0.85rem 1.25rem', marginBottom: '1rem', color: '#475569', fontSize: '0.875rem' }}>
+                {refundEligibility?.message || 'This order does not have an active refundable balance, or a refund request is currently being reviewed.'}
+              </div>
+            )}
+          </>
+        )}
+
+        {refundEligibility?.existing_refunds && refundEligibility.existing_refunds.length > 0 && (
+          <div style={{ marginTop: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.75rem' }}>
+              Refund Requests & History ({refundEligibility.existing_refunds.length})
+            </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {refundEligibility.existing_refunds.map((ref) => (
                 <div key={ref.id} style={{
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid #E2E8F0',
                   borderRadius: 8,
                   padding: '1rem',
-                  backgroundColor: 'var(--bg-subtle)'
+                  backgroundColor: '#F8FAFC'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <div>
-                      <span style={{ fontWeight: 700, color: 'var(--dark-blue)' }}>Claim #{ref.id}</span>
-                      <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                        Reason: {ref.reason.replace(/_/g, ' ')}
+                      <span style={{ fontWeight: 700, color: '#1E3A8A', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                        {ref.refund_reference || `Claim #${ref.id}`}
+                      </span>
+                      <span style={{ marginLeft: '0.75rem', color: '#64748B', fontSize: '0.85rem' }}>
+                        Reason: <strong>{ref.reason_display || ref.reason?.replace(/_/g, ' ')}</strong>
                       </span>
                     </div>
-                    <span className="badge badge-warning" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
-                      {ref.status}
+                    <span className={`badge badge-${ref.status === 'completed' || ref.status === 'approved' ? 'success' : ref.status === 'rejected' || ref.status === 'failed' ? 'danger' : 'warning'}`} style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.75rem' }}>
+                      {ref.status_display || ref.status}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                    Requested: <strong>₱{parseFloat(ref.requested_amount).toFixed(2)}</strong>
-                    {ref.approved_amount && (
-                      <span style={{ marginLeft: '1rem', color: 'var(--color-success)', fontWeight: 700 }}>
-                        Approved: ₱{parseFloat(ref.approved_amount).toFixed(2)}
-                      </span>
+                  <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.875rem', color: '#1E293B', marginBottom: '0.5rem' }}>
+                    <div>
+                      Requested: <strong>₱{parseFloat(ref.amount_requested || ref.requested_amount).toFixed(2)}</strong>
+                    </div>
+                    {ref.amount_approved > 0 && (
+                      <div style={{ color: '#059669', fontWeight: 700 }}>
+                        Approved: ₱{parseFloat(ref.amount_approved).toFixed(2)}
+                      </div>
                     )}
+                    <div style={{ color: '#64748B', fontSize: '0.8rem' }}>
+                      Submitted: {new Date(ref.created_at).toLocaleString()}
+                    </div>
                   </div>
 
-                  {ref.customer_explanation && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                      <em>Note: "{ref.customer_explanation}"</em>
+                  {(ref.explanation || ref.customer_explanation) && (
+                    <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', background: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                      <strong>Your Details:</strong> {ref.explanation || ref.customer_explanation}
                     </div>
                   )}
 
-                  {ref.decision_notes && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--dark-blue)', backgroundColor: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: 6, marginBottom: '0.5rem', border: '1px solid var(--border-color)' }}>
-                      <strong>Decision Note:</strong> {ref.decision_notes}
+                  {(ref.decision_reason || ref.decision_notes) && (
+                    <div style={{ fontSize: '0.85rem', color: '#1E3A8A', backgroundColor: '#EFF6FF', padding: '0.5rem 0.75rem', borderRadius: 6, marginBottom: '0.5rem', border: '1px solid #BFDBFE' }}>
+                      <strong>Review / Decision Note:</strong> {ref.decision_reason || ref.decision_notes}
                     </div>
                   )}
 
-                  {ref.status.toLowerCase() === 'pending' && (
+                  {['pending', 'under_review'].includes(ref.status?.toLowerCase()) && (
                     <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
                       <button
                         type="button"
                         onClick={() => handleCancelRefund(ref.id)}
                         disabled={cancellingRefundId === ref.id}
-                        style={{ color: 'var(--color-error)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+                        style={{ color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, padding: '0.25rem 0.5rem' }}
                       >
                         {cancellingRefundId === ref.id ? 'Cancelling...' : 'Cancel Refund Request'}
                       </button>
@@ -684,9 +753,9 @@ const OrderTracking = () => {
                 </div>
               ))}
             </div>
-          ) : null}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* FEATURE 2: Rate This Shop Section (Only on Completed Orders) */}
       {isCompleted && (
@@ -796,54 +865,88 @@ const OrderTracking = () => {
         </div>
       )}
 
-      {/* Modal: Request a Refund */}
+      {/* Modal: Request a Refund (12 Fields Form) */}
       {refundModalOpen && (
         <div className="admin-modal-overlay" onClick={() => setRefundModalOpen(false)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-modal-card" style={{ maxWidth: '640px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h3 style={{ margin: 0, color: 'var(--dark-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <DollarSign size={20} style={{ color: 'var(--primary-blue)' }} /> Request Refund for Order #{order.order_number}
+              <h3 style={{ margin: 0, color: 'var(--dark-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+                <DollarSign size={22} style={{ color: 'var(--primary-blue)' }} /> Request Refund — Order #{order.order_number}
               </h3>
               <button type="button" className="admin-modal-close" onClick={() => setRefundModalOpen(false)}>
                 &times;
               </button>
             </div>
-            <form onSubmit={handleCreateRefund}>
-              <div className="admin-modal-body">
-                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-                  <div>Total Order Paid: <strong>₱{parseFloat(refundEligibility?.total_paid || order.total_amount).toFixed(2)}</strong></div>
-                  <div>Maximum Refundable Balance: <strong>₱{parseFloat(refundEligibility?.remaining_refundable_balance || 0).toFixed(2)}</strong></div>
+            <form onSubmit={handleCreateRefund} style={{ overflowY: 'auto', flex: 1 }}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem' }}>
+                
+                {/* 1. Refund Request ID & 2. Order ID */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>1. Refund Request ID</label>
+                    <div style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1E3A8A', fontSize: '0.85rem' }}>
+                      Auto-generated on submit<br/>
+                      <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>(e.g. UQP-REF-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}-XXXX)</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>2. Order Reference</label>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>
+                      Order #{order.order_number} <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 400 }}>(ID: {order.id})</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Reason for Refund:
-                  </label>
-                  <select
-                    className="form-input"
-                    value={refundReason}
-                    onChange={(e) => setRefundReason(e.target.value)}
-                    required
-                  >
-                    <option value="cancelled_before_printing">Customer cancelled before printing started</option>
-                    <option value="shop_rejected">Shop rejected the order</option>
-                    <option value="shop_unfulfillable">Shop cannot complete the order</option>
-                    <option value="duplicate_payment">Duplicate payment</option>
-                    <option value="incorrect_defective_printing">Incorrect or defective printing</option>
-                    <option value="payment_unconfirmed_order">Payment succeeded but order not confirmed</option>
-                    <option value="other">Other</option>
-                  </select>
+                {/* 3. Customer Information & 4. Shop Information */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>3. Customer Account</label>
+                    <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
+                      {user?.full_name || 'Authenticated Customer'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748B' }}>{user?.email || 'customer@univquickprint.edu'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>4. Printing Shop</label>
+                    <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
+                      {order.shop?.name || 'Printing Shop'}
+                    </div>
+                    {order.shop?.address && (
+                      <div style={{ fontSize: '0.8rem', color: '#64748B' }}>{order.shop.address}</div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Requested Amount (₱):
+                {/* 5. Order Total & Maximum Refundable */}
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '0.85rem 1rem', borderRadius: 8, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>5. Order Total & Paid</label>
+                    <div style={{ fontWeight: 700, color: '#1E3A8A', fontSize: '1rem' }}>
+                      ₱{parseFloat(order.total_amount).toFixed(2)}
+                      <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#3B82F6', marginLeft: '0.5rem' }}>
+                        (Paid: ₱{parseFloat(refundEligibility?.total_paid || order.total_amount).toFixed(2)})
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>Max Refundable Balance</label>
+                    <div style={{ fontWeight: 700, color: '#059669', fontSize: '1rem' }}>
+                      ₱{parseFloat(refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? order.total_amount).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. Requested Refund Amount */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>6. Requested Refund Amount (₱) *</span>
+                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 400 }}>Partial or full amount</span>
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     min="0.01"
-                    max={refundEligibility?.remaining_refundable_balance || order.total_amount}
+                    max={refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? order.total_amount}
                     className="form-input"
                     value={refundAmount}
                     onChange={(e) => setRefundAmount(e.target.value)}
@@ -851,20 +954,65 @@ const OrderTracking = () => {
                   />
                 </div>
 
+                {/* 7. Refund Reason */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600 }}>
-                    Explanation / Details (Optional):
+                    7. Reason for Refund *
+                  </label>
+                  <select
+                    className="form-input"
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    required
+                  >
+                    <option value="wrong_item">Wrong item or printing result</option>
+                    <option value="defective_print">Damaged or defective print</option>
+                    <option value="order_not_received">Order not received</option>
+                    <option value="order_cancelled">Order cancelled</option>
+                    <option value="duplicate_payment">Payment issue or duplicate payment</option>
+                    <option value="other">Other reason</option>
+                  </select>
+                </div>
+
+                {/* 8. Additional Details */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    8. Additional Details / Explanation
                   </label>
                   <textarea
                     className="form-input"
                     rows={3}
-                    placeholder="Provide details about why you are requesting a refund..."
+                    placeholder="Describe what occurred (e.g., misaligned margins, incorrect paper size, duplicate charge)..."
                     value={refundExplanation}
                     onChange={(e) => setRefundExplanation(e.target.value)}
                   />
                 </div>
+
+                {/* 9. Supporting Evidence */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.75rem 1rem', borderRadius: 8 }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
+                    9. Supporting Evidence
+                  </label>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>
+                    Please retain your physical print copy if inspection is needed by the shop. You can also mention details or provide external photo links in the explanation above.
+                  </p>
+                </div>
+
+                {/* 10. Refund Method */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.75rem 1rem', borderRadius: 8 }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
+                    10. Refund Method
+                  </label>
+                  <div style={{ fontSize: '0.85rem', color: '#0F172A', fontWeight: 600 }}>
+                    Original Payment Method (Sandbox / GCash / Maya)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                    Approved refunds are credited back to the original funding account.
+                  </div>
+                </div>
+
               </div>
-              <div className="admin-modal-footer">
+              <div className="admin-modal-footer" style={{ padding: '1rem 1.25rem', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn-nav-outline" onClick={() => setRefundModalOpen(false)}>
                   Cancel
                 </button>
@@ -872,8 +1020,10 @@ const OrderTracking = () => {
                   type="submit"
                   className="btn-order-action btn-action-accept"
                   disabled={submittingRefund}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1.25rem' }}
                 >
-                  {submittingRefund ? 'Submitting...' : 'Submit Refund Claim'}
+                  <DollarSign size={16} />
+                  {submittingRefund ? 'Submitting Refund Request...' : 'Submit Refund Request'}
                 </button>
               </div>
             </form>

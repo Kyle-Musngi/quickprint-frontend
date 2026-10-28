@@ -9,11 +9,12 @@ import {
   ArrowRight,
   PlusCircle,
   Package,
-  HelpCircle
+  HelpCircle,
+  Receipt
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { orderService, paymentService } from '../../services/api';
-import { formatOrderStatus, getOrderStatusBadge } from '../../utils/formatOrderStatus';
+import { formatOrderStatus, getOrderStatusBadge, getPaymentStatusBadge } from '../../utils/formatOrderStatus';
 import './CustomerDashboard.css';
 
 const CustomerDashboard = () => {
@@ -37,9 +38,9 @@ const CustomerDashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const activeOrders = orders.filter((o) =>
-    ['submitted', 'received', 'accepted', 'printing', 'ready_for_pickup'].includes(o.status)
-  );
+  // Include ALL non-closed orders in Active Orders (including awaiting_payment, submitted, accepted, in_production, ready_for_pickup)
+  const isClosed = (st) => ['completed', 'cancelled', 'rejected', 'expired'].includes(st);
+  const activeOrders = orders.filter((o) => !isClosed(o.status));
   const completedOrders = orders.filter((o) => o.status === 'completed');
   const readyForPickup = orders.filter((o) => o.status === 'ready_for_pickup');
 
@@ -82,7 +83,7 @@ const CustomerDashboard = () => {
           </div>
           <div>
             <div className="stat-num">{activeOrders.length}</div>
-            <div className="stat-label">In Production</div>
+            <div className="stat-label">Active Orders</div>
           </div>
         </div>
 
@@ -134,42 +135,90 @@ const CustomerDashboard = () => {
               <thead>
                 <tr>
                   <th>Order #</th>
+                  <th>Date</th>
                   <th>Shop</th>
-                  <th>Pickup Code</th>
-                  <th>Scheduled Pickup</th>
-                  <th>Status</th>
-                  <th>Amount</th>
-                  <th>Action</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Payment Status</th>
+                  <th>Order Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {activeOrders.map((ord) => (
-                  <tr key={ord.id}>
-                    <td><strong>{ord.order_number}</strong></td>
-                    <td>{ord.shop_name}</td>
-                    <td>
-                      {ord.pickup_code ? (
-                        <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: 4 }}>
-                          {ord.pickup_code}
+                {activeOrders.map((ord) => {
+                  const payBadge = getPaymentStatusBadge(ord.payment_status);
+                  const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(ord.status) && ord.payment_status !== 'paid';
+
+                  return (
+                    <tr key={ord.id}>
+                      <td>
+                        <strong>{ord.order_number}</strong>
+                        {ord.pickup_code && (
+                          <div style={{ marginTop: '0.2rem' }}>
+                            <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.78rem' }}>
+                              Code: {ord.pickup_code}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'Recent'}
+                      </td>
+                      <td>{ord.shop_name || 'Print Shop'}</td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {ord.documents?.length || ord.document_count || 1} document(s)
+                      </td>
+                      <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: 6,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: payBadge.color,
+                            backgroundColor: payBadge.bg
+                          }}
+                        >
+                          {payBadge.label}
                         </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>Pending</span>
-                      )}
-                    </td>
-                    <td>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</td>
-                    <td>
-                      <span className={`badge ${getOrderStatusBadge(ord.status)}`}>
-                        {formatOrderStatus(ord.status)}
-                      </span>
-                    </td>
-                    <td>₱{parseFloat(ord.total_amount).toFixed(2)}</td>
-                    <td>
-                      <Link to={`/tracking/${ord.id}`} className="btn-nav-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
-                        Track
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>
+                        <span className={`badge ${getOrderStatusBadge(ord.status)}`}>
+                          {formatOrderStatus(ord.status)}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                          {isAwaitingPay && (
+                            <Link
+                              to={`/payment/${ord.id}`}
+                              className="btn-order-action btn-action-accept"
+                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', textDecoration: 'none' }}
+                            >
+                              Pay Now
+                            </Link>
+                          )}
+                          <Link
+                            to={`/tracking/${ord.id}`}
+                            className="btn-nav-outline"
+                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}
+                          >
+                            Track
+                          </Link>
+                          <Link
+                            to={`/order-summary/${ord.id}`}
+                            className="btn-nav-outline"
+                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}
+                          >
+                            Receipt
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

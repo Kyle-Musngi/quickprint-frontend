@@ -62,8 +62,17 @@ export function formatPaymentStatus(status) {
   if (!status) return 'Unpaid';
   const clean = String(status).toLowerCase().trim();
   if (clean === 'paid') return 'Paid';
-  if (clean === 'unpaid') return 'Unpaid';
+  if (clean === 'unpaid') return 'Pending Payment';
   if (clean === 'failed') return 'Failed';
   if (clean === 'refunded') return 'Refunded';
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
+
+export function getPaymentStatusBadge(status) {
+  const clean = String(status || 'unpaid').toLowerCase().trim();
+  if (clean === 'paid') return { label: 'Paid', color: '#15803D', bg: '#DCFCE7' };
+  if (clean === 'refunded') return { label: 'Refunded', color: '#7E22CE', bg: '#FAF5FF' };
+  if (clean === 'failed') return { label: 'Payment Failed', color: '#DC2626', bg: '#FEF2F2' };
+  return { label: 'Pending Payment', color: '#C2410C', bg: '#FFF7ED' };
+}
+
