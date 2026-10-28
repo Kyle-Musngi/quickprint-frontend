@@ -38,32 +38,71 @@
   gap: 0.65rem;
 }
 
-.btn-refund-review-badge {
+.tracking-actions .btn-nav-outline {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  border-color: #F59E0B;
-  color: #B45309;
-  background: #FEF3C7;
-  font-size: 0.85rem;
+  height: 40px;
+  padding: 0 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  line-height: 1;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--card-bg, #ffffff);
+  color: var(--text-main, #1E293B);
   text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.2s ease);
+  white-space: nowrap;
 }
 
-.btn-refund-review-badge:hover {
-  background: #FDE68A;
+.tracking-actions .btn-nav-outline:hover:not(:disabled) {
+  border-color: var(--primary-blue, #2563EB);
+  color: var(--primary-blue, #2563EB);
+  background-color: var(--accent-light, #EFF6FF);
+}
+
+.tracking-actions .btn-nav-outline:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .tracking-actions .btn-nav-outline {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme='dark'] .tracking-actions .btn-nav-outline:hover:not(:disabled) {
+  background-color: rgba(37, 99, 235, 0.15);
+  border-color: #3B82F6;
+  color: #60A5FA;
+}
+
+.tracking-actions .btn-refund-review-badge {
+  border-color: #F59E0B;
+  color: #B45309;
+  background-color: #FEF3C7;
+  font-weight: 600;
+}
+
+.tracking-actions .btn-refund-review-badge:hover {
+  background-color: #FDE68A;
   border-color: #D97706;
   color: #92400E;
 }
 
-[data-theme='dark'] .btn-refund-review-badge {
-  background: rgba(245, 158, 11, 0.15);
+[data-theme='dark'] .tracking-actions .btn-refund-review-badge {
+  background-color: rgba(245, 158, 11, 0.15);
   border-color: #B45309;
   color: #FCD34D;
 }
 
-[data-theme='dark'] .btn-refund-review-badge:hover {
-  background: rgba(245, 158, 11, 0.25);
+[data-theme='dark'] .tracking-actions .btn-refund-review-badge:hover {
+  background-color: rgba(245, 158, 11, 0.25);
   border-color: #F59E0B;
   color: #FDE68A;
 }
@@ -89,9 +128,18 @@
   }
   .tracking-actions {
     width: 100%;
-    justify-content: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tracking-actions .btn-nav-outline {
+    flex: 1 1 auto;
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 0 0.85rem;
   }
 }
+
 
 .pickup-code-banner {
   background: linear-gradient(135deg, var(--dark-blue, #1E3A8A), var(--primary-blue, #2563EB));

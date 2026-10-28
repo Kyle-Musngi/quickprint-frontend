@@ -327,7 +327,6 @@ const OrderTracking = () => {
             disabled={refreshing}
             className="btn-nav-outline"
             title="Refresh order details and current status"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', cursor: refreshing ? 'not-allowed' : 'pointer' }}
           >
             <RotateCcw size={16} className={refreshing ? 'spin-animation' : ''} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -337,7 +336,6 @@ const OrderTracking = () => {
               to={`/order-summary/${order.id}`}
               className="btn-nav-outline"
               title="View official payment receipt"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
             >
               <Receipt size={16} /> Receipt
             </Link>
@@ -346,9 +344,8 @@ const OrderTracking = () => {
             <button
               type="button"
               onClick={handleOpenRefundModal}
-              className="btn-order-action btn-action-neutral"
+              className="btn-nav-outline"
               title="Request a refund for this order"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
             >
               <DollarSign size={16} /> Request Refund
             </button>

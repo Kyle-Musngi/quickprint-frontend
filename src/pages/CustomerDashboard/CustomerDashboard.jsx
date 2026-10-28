@@ -10,18 +10,43 @@ import {
   PlusCircle,
   Package,
   HelpCircle,
-  Receipt
+  Receipt,
+  RotateCcw,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { orderService, paymentService } from '../../services/api';
-import { formatOrderStatus, getOrderStatusBadge, getPaymentStatusBadge } from '../../utils/formatOrderStatus';
+import {
+  formatOrderStatus,
+  getOrderStatusBadge,
+  getPaymentStatusBadge,
+  formatRefundStatus,
+  getRefundStatusBadge
+} from '../../utils/formatOrderStatus';
 import './CustomerDashboard.css';
 
 const CustomerDashboard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [refundRequests, setRefundRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refundsLoading, setRefundsLoading] = useState(true);
+  const [refundsError, setRefundsError] = useState(null);
+
+  const fetchRefundRequests = async () => {
+    setRefundsLoading(true);
+    setRefundsError(null);
+    try {
+      const data = await paymentService.getRefunds();
+      const list = Array.isArray(data) ? data : (data.results || []);
+      setRefundRequests(list);
+    } catch (err) {
+      setRefundsError(err.response?.data?.detail || 'Unable to load refund requests. Please try again.');
+    } finally {
+      setRefundsLoading(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -39,7 +64,10 @@ const CustomerDashboard = () => {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetchRefundRequests();
   }, []);
+
 
   // Standard active and terminal statuses across UQP
   const CLOSED_STATUSES = ['completed', 'cancelled', 'rejected', 'expired'];
@@ -138,6 +166,16 @@ const CustomerDashboard = () => {
           <div>
             <div className="stat-num">{payments.length}</div>
             <div className="stat-label">Sandbox Payments</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon amber">
+            <RotateCcw size={24} />
+          </div>
+          <div>
+            <div className="stat-num">{refundRequests.length}</div>
+            <div className="stat-label">Refund Claims</div>
           </div>
         </div>
       </div>
@@ -305,6 +343,200 @@ const CustomerDashboard = () => {
         )}
       </div>
 
+      {/* Customer Refund Requests Section */}
+      <div className="dashboard-section" id="refund-requests-section">
+        <div className="dashboard-section-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <RotateCcw size={22} style={{ color: 'var(--primary-blue)' }} />
+            <h2 className="dashboard-section-title" style={{ margin: 0 }}>Refund Requests</h2>
+            {!refundsLoading && refundRequests.length > 0 && (
+              <span style={{
+                background: '#EFF6FF',
+                color: 'var(--primary-blue)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                padding: '0.2rem 0.55rem',
+                borderRadius: '12px'
+              }}>
+                {refundRequests.length}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={fetchRefundRequests}
+            disabled={refundsLoading}
+            className="btn-nav-outline"
+            style={{ padding: '0.4rem 0.85rem', fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Refresh refund claims"
+          >
+            <RotateCcw size={14} className={refundsLoading ? 'spin-animation' : ''} />
+            {refundsLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {refundsLoading ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-secondary)' }}>
+            <RotateCcw size={24} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: 'var(--primary-blue)' }} />
+            <p style={{ margin: 0 }}>Loading your refund requests...</p>
+          </div>
+        ) : refundsError ? (
+          <div style={{
+            background: 'var(--color-error-bg, #FEF2F2)',
+            border: '1px solid #FECACA',
+            borderRadius: 8,
+            padding: '1.25rem',
+            textAlign: 'center'
+          }}>
+            <p style={{ color: '#B91C1C', fontWeight: 600, marginBottom: '0.75rem' }}>{refundsError}</p>
+            <button
+              type="button"
+              onClick={fetchRefundRequests}
+              className="btn-nav-outline"
+              style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : refundRequests.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem', background: 'var(--bg-subtle, #F8FAFC)', borderRadius: 12 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: '#F1F5F9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 0.75rem',
+              color: 'var(--text-muted, #94A3B8)'
+            }}>
+              <RotateCcw size={24} />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+              No refund requests yet.
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '460px', margin: '0 auto 1.25rem' }}>
+              When you submit a refund request for an eligible order, you can monitor its administrator review, approval, and settlement right here.
+            </p>
+            <Link to="/customer/orders" className="home-btn-primary" style={{ display: 'inline-flex', padding: '0.5rem 1.25rem', fontSize: '0.9rem' }}>
+              View Orders to Check Eligibility
+            </Link>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="orders-table">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Order #</th>
+                  <th>Shop</th>
+                  <th>Reason</th>
+                  <th>Requested Amount</th>
+                  <th>Approved Amount</th>
+                  <th>Date Submitted</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {refundRequests.map((ref) => {
+                  const statusBadge = getRefundStatusBadge(ref.status);
+                  const requestedAmt = parseFloat(ref.amount_requested);
+                  const formattedRequested = !isNaN(requestedAmt) ? `₱${requestedAmt.toFixed(2)}` : '—';
+                  const approvedAmt = ref.amount_approved !== null && ref.amount_approved !== undefined ? parseFloat(ref.amount_approved) : null;
+                  const formattedApproved = approvedAmt !== null && !isNaN(approvedAmt) && approvedAmt > 0
+                    ? `₱${approvedAmt.toFixed(2)}`
+                    : (['approved', 'completed', 'refunded'].includes(String(ref.status).toLowerCase()) ? formattedRequested : '—');
+                  const dateStr = ref.created_at
+                    ? new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '—';
+                  const updatedStr = ref.updated_at && ref.updated_at !== ref.created_at
+                    ? new Date(ref.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : null;
+
+                  return (
+                    <tr key={ref.id}>
+                      <td>
+                        <strong style={{ fontFamily: 'monospace', color: 'var(--dark-blue)', fontSize: '0.85rem' }}>
+                          {ref.refund_reference || `#${ref.id}`}
+                        </strong>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/tracking/${ref.order}`}
+                          style={{ fontWeight: 600, color: 'var(--primary-blue)', textDecoration: 'none' }}
+                          title="Track this order"
+                        >
+                          {ref.order_number || `#${ref.order}`}
+                        </Link>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{ref.shop_name || 'Print Shop'}</div>
+                      </td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-main)', maxWidth: '200px' }}>
+                        <div>{ref.reason_display || ref.reason?.replace(/_/g, ' ')}</div>
+                        {ref.explanation && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }} title={ref.explanation}>
+                            "{ref.explanation}"
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <strong>{formattedRequested}</strong>
+                      </td>
+                      <td>
+                        <span style={{ color: formattedApproved !== '—' ? '#047857' : 'var(--text-secondary)', fontWeight: formattedApproved !== '—' ? 700 : 400 }}>
+                          {formattedApproved}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <div>{dateStr}</div>
+                        {updatedStr && updatedStr !== dateStr && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Updated {updatedStr}</div>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: 6,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: statusBadge.color,
+                            backgroundColor: statusBadge.bg,
+                            border: `1px solid ${statusBadge.color}25`,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {ref.status_display || statusBadge.label}
+                        </span>
+                        {ref.decision_reason && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                            {ref.decision_reason}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <Link
+                          to={`/tracking/${ref.order}#refund-section`}
+                          className="btn-nav-outline"
+                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}
+                          title="View order tracking and refund progress"
+                        >
+                          Track Refund
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Quick Navigation Cards */}
       <div className="dashboard-nav-grid">
         <Link to="/customer/orders" className="stat-card" style={{ textDecoration: 'none' }}>
@@ -314,6 +546,14 @@ const CustomerDashboard = () => {
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>View completed and cancelled orders</p>
           </div>
         </Link>
+
+        <a href="#refund-requests-section" className="stat-card" style={{ textDecoration: 'none' }}>
+          <div className="stat-icon amber"><RotateCcw size={22} /></div>
+          <div>
+            <h4 style={{ color: 'var(--dark-blue)', marginBottom: 2 }}>Refund Requests</h4>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Track claims, approvals, and settlements</p>
+          </div>
+        </a>
 
         <Link to="/customer/notifications" className="stat-card" style={{ textDecoration: 'none' }}>
           <div className="stat-icon green"><Bell size={22} /></div>

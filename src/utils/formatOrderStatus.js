@@ -78,3 +78,47 @@ export function getPaymentStatusBadge(status) {
   return { label: 'Unpaid', color: '#C2410C', bg: '#FFF7ED' };
 }
 
+/**
+ * Refund Status Mapping & Formatting
+ */
+export const REFUND_STATUS_MAP = {
+  pending: { label: 'Pending Review', color: '#B45309', bg: '#FEF3C7' },
+  under_review: { label: 'Under Review', color: '#B45309', bg: '#FEF3C7' },
+  approved: { label: 'Approved', color: '#15803D', bg: '#DCFCE7' },
+  processing: { label: 'Processing', color: '#2563EB', bg: '#EFF6FF' },
+  completed: { label: 'Refunded', color: '#047857', bg: '#D1FAE5' },
+  refunded: { label: 'Refunded', color: '#047857', bg: '#D1FAE5' },
+  rejected: { label: 'Rejected', color: '#DC2626', bg: '#FEF2F2' },
+  failed: { label: 'Failed', color: '#DC2626', bg: '#FEF2F2' },
+  cancelled: { label: 'Cancelled', color: '#4B5563', bg: '#F3F4F6' },
+};
+
+export function formatRefundStatus(status) {
+  if (!status) return 'Pending Review';
+  const clean = String(status).toLowerCase().trim();
+  if (REFUND_STATUS_MAP[clean]) {
+    return REFUND_STATUS_MAP[clean].label;
+  }
+  return clean
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export function getRefundStatusBadge(status) {
+  if (!status) {
+    return { label: 'Pending Review', color: '#B45309', bg: '#FEF3C7' };
+  }
+  const clean = String(status).toLowerCase().trim();
+  if (REFUND_STATUS_MAP[clean]) {
+    return REFUND_STATUS_MAP[clean];
+  }
+  return {
+    label: formatRefundStatus(status),
+    color: '#334155',
+    bg: '#F1F5F9',
+  };
+}
+
+
