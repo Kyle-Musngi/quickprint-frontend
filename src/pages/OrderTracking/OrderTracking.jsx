@@ -298,9 +298,11 @@ const OrderTracking = () => {
           <button onClick={fetchOrder} className="btn-nav-outline" title="Refresh status">
             <RotateCcw size={16} /> Refresh
           </button>
-          <Link to={`/order-summary/${order.id}`} className="btn-nav-outline">
-            <Receipt size={16} /> Receipt
-          </Link>
+          {order.payment_status === 'paid' && (
+            <Link to={`/order-summary/${order.id}`} className="btn-nav-outline">
+              <Receipt size={16} /> Receipt
+            </Link>
+          )}
           {order.payment_status === 'paid' && (
             <button
               type="button"

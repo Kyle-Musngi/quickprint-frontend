@@ -183,6 +183,7 @@ const CustomerDashboard = () => {
                   const payBadge = getPaymentStatusBadge(ord.payment_status);
                   const orderBadge = getOrderStatusBadge(ord.status);
                   const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(String(ord.status || '').toLowerCase().trim()) && String(ord.payment_status || '').toLowerCase().trim() !== 'paid';
+                  const isPaid = String(ord.payment_status || '').toLowerCase().trim() === 'paid';
 
                   return (
                     <tr key={ord.id}>
@@ -284,13 +285,15 @@ const CustomerDashboard = () => {
                           >
                             Track
                           </Link>
-                          <Link
-                            to={`/order-summary/${ord.id}`}
-                            className="btn-nav-outline"
-                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                          >
-                            <Receipt size={14} /> Receipt
-                          </Link>
+                          {isPaid && (
+                            <Link
+                              to={`/order-summary/${ord.id}`}
+                              className="btn-nav-outline"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            >
+                              <Receipt size={14} /> Receipt
+                            </Link>
+                          )}
                         </div>
                       </td>
                     </tr>

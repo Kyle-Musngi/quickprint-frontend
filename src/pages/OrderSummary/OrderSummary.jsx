@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Printer, ArrowLeft, Download, CheckCircle } from 'lucide-react';
+import { Printer, ArrowLeft, Download, CheckCircle, CreditCard, AlertCircle } from 'lucide-react';
 import { orderService } from '../../services/api';
 import './OrderSummary.css';
 
@@ -17,7 +17,7 @@ const OrderSummary = () => {
   }, [id]);
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-secondary)' }}>Loading order receipt...</div>;
+    return <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-secondary)' }}>Loading order details...</div>;
   }
 
   if (!order) {
@@ -31,36 +31,117 @@ const OrderSummary = () => {
     );
   }
 
+  const isPaid = String(order.payment_status || '').toLowerCase().trim() === 'paid';
+  const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(String(order.status || '').toLowerCase().trim()) && !isPaid;
+
   return (
     <div className="order-summary-page">
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <Link to={`/tracking/${order.id}`} className="back-link">
           <ArrowLeft size={16} /> Back to Live Tracking
         </Link>
-        <button
-          onClick={() => window.print()}
-          className="btn-nav-outline"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <Printer size={16} /> Print Receipt
-        </button>
+        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+          {isAwaitingPay && (
+            <Link
+              to={`/payment/${order.id}`}
+              className="btn-order-action btn-action-accept"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.9rem', fontSize: '0.85rem', textDecoration: 'none' }}
+            >
+              <CreditCard size={15} /> Pay Now (₱{parseFloat(order.total_amount).toFixed(2)})
+            </Link>
+          )}
+          {isPaid && (
+            <button
+              onClick={() => window.print()}
+              className="btn-nav-outline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem' }}
+            >
+              <Printer size={16} /> Print Receipt
+            </button>
+          )}
+        </div>
       </div>
+
+      {!isPaid && (
+        <div style={{
+          background: '#FFF7ED',
+          border: '1px solid #FED7AA',
+          color: '#9A3412',
+          padding: '0.85rem 1.25rem',
+          borderRadius: 8,
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          fontSize: '0.9rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertCircle size={18} style={{ color: '#EA580C', flexShrink: 0 }} />
+            <span>
+              <strong>Unpaid Order Summary:</strong> Payment has not been completed. Official payment receipts are generated only after payment is verified.
+            </span>
+          </div>
+          {isAwaitingPay && (
+            <Link
+              to={`/payment/${order.id}`}
+              style={{ color: '#EA580C', fontWeight: 700, textDecoration: 'underline' }}
+            >
+              Proceed to Payment &rarr;
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="summary-sheet">
         <div className="summary-header">
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--primary-blue)', fontWeight: 700, textTransform: 'uppercase' }}>
-              Univ Quick Print Order Receipt
+            <div style={{ fontSize: '0.8rem', color: isPaid ? '#15803D' : 'var(--primary-blue)', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {isPaid ? (
+                <>
+                  <CheckCircle size={14} style={{ color: '#15803D' }} /> Univ Quick Print Official Payment Receipt
+                </>
+              ) : (
+                'Univ Quick Print Order Summary & Invoice'
+              )}
             </div>
             <div className="summary-ref">{order.order_number}</div>
             <div className="summary-date">Submitted on {new Date(order.created_at).toLocaleString()}</div>
           </div>
-          {order.pickup_code && (
-            <div style={{ background: '#EFF6FF', border: '1px dashed var(--primary-blue)', padding: '0.6rem 1rem', borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>PICKUP CODE</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary-blue)' }}>{order.pickup_code}</div>
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+            {isPaid ? (
+              <span style={{
+                background: '#DCFCE7',
+                color: '#15803D',
+                fontWeight: 800,
+                padding: '0.25rem 0.65rem',
+                borderRadius: 6,
+                fontSize: '0.8rem',
+                border: '1px solid #86EFAC'
+              }}>
+                PAYMENT CONFIRMED
+              </span>
+            ) : (
+              <span style={{
+                background: '#FFF7ED',
+                color: '#C2410C',
+                fontWeight: 800,
+                padding: '0.25rem 0.65rem',
+                borderRadius: 6,
+                fontSize: '0.8rem',
+                border: '1px solid #FED7AA'
+              }}>
+                PAYMENT UNPAID
+              </span>
+            )}
+            {order.pickup_code && (
+              <div style={{ background: '#EFF6FF', border: '1px dashed var(--primary-blue)', padding: '0.4rem 0.8rem', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>PICKUP CODE</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary-blue)' }}>{order.pickup_code}</div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="summary-grid-2">
@@ -99,8 +180,10 @@ const OrderSummary = () => {
           </tbody>
         </table>
 
-        <div className="summary-total-box">
-          Total Payable: ₱{parseFloat(order.total_amount).toFixed(2)}
+        <div className="summary-total-box" style={{ background: isPaid ? '#F0FDF4' : '#FFF7ED', borderColor: isPaid ? '#BBF7D0' : '#FED7AA', color: isPaid ? '#15803D' : '#9A3412' }}>
+          {isPaid
+            ? `Total Paid: ₱${parseFloat(order.total_amount).toFixed(2)} (Official Receipt)`
+            : `Amount Due: ₱${parseFloat(order.total_amount).toFixed(2)} (Unpaid)`}
         </div>
       </div>
     </div>

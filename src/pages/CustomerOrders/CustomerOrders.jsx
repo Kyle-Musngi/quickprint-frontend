@@ -237,9 +237,11 @@ const CustomerOrders = () => {
                           </Link>
                         )}
 
-                        <Link to={`/order-summary/${ord.id}`} className="btn-nav-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}>
-                          Receipt
-                        </Link>
+                        {String(ord.payment_status || '').toLowerCase().trim() === 'paid' && (
+                          <Link to={`/order-summary/${ord.id}`} className="btn-nav-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}>
+                            Receipt
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
