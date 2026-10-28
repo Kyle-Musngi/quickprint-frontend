@@ -674,16 +674,6 @@ const OrderTracking = () => {
           <h2 className="tracking-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <DollarSign size={20} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Refund Management
           </h2>
-          {isPaid && isRefundEligible && (
-            <button
-              type="button"
-              onClick={handleOpenRefundModal}
-              className="btn-order-action btn-action-neutral"
-              style={{ padding: '0.45rem 1rem', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <DollarSign size={16} /> Request a Refund
-            </button>
-          )}
         </div>
 
         {!isPaid ? (
