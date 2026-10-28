@@ -121,4 +121,76 @@ export function getRefundStatusBadge(status) {
   };
 }
 
+/**
+ * Returns distinct badge styling for orders that have a refund request.
+ * Displays "Requesting Refund" for pending or under_review, and the specific
+ * existing refund status for approved, rejected, processing, completed, etc.
+ */
+export function getOrderRefundBadge(status) {
+  if (!status) return null;
+  const clean = String(status).toLowerCase().trim();
+  if (['pending', 'under_review'].includes(clean)) {
+    return {
+      label: 'Requesting Refund',
+      color: '#B45309',
+      bg: '#FEF3C7',
+      border: '1px solid #FCD34D'
+    };
+  }
+  if (clean === 'approved') {
+    return {
+      label: 'Approved',
+      color: '#15803D',
+      bg: '#DCFCE7',
+      border: '1px solid #86EFAC'
+    };
+  }
+  if (clean === 'processing') {
+    return {
+      label: 'Processing',
+      color: '#2563EB',
+      bg: '#EFF6FF',
+      border: '1px solid #93C5FD'
+    };
+  }
+  if (['completed', 'refunded'].includes(clean)) {
+    return {
+      label: 'Completed',
+      color: '#047857',
+      bg: '#D1FAE5',
+      border: '1px solid #6EE7B7'
+    };
+  }
+  if (clean === 'rejected') {
+    return {
+      label: 'Rejected',
+      color: '#DC2626',
+      bg: '#FEF2F2',
+      border: '1px solid #FCA5A5'
+    };
+  }
+  if (clean === 'cancelled') {
+    return {
+      label: 'Cancelled',
+      color: '#4B5563',
+      bg: '#F3F4F6',
+      border: '1px solid #D1D5DB'
+    };
+  }
+  if (clean === 'failed') {
+    return {
+      label: 'Failed',
+      color: '#DC2626',
+      bg: '#FEF2F2',
+      border: '1px solid #FCA5A5'
+    };
+  }
+  return {
+    label: formatRefundStatus(clean),
+    color: '#334155',
+    bg: '#F1F5F9',
+    border: '1px solid #E2E8F0'
+  };
+}
+
 

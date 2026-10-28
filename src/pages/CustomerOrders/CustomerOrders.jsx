@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Package, Printer, CreditCard, Star, Clock, ArrowLeft } from 'lucide-react';
-import { orderService } from '../../services/api';
-import { formatOrderStatus, formatPaymentStatus } from '../../utils/formatOrderStatus';
+import { orderService, paymentService } from '../../services/api';
+import {
+  formatOrderStatus,
+  formatPaymentStatus,
+  getOrderStatusBadge,
+  getOrderRefundBadge
+} from '../../utils/formatOrderStatus';
+import { formatCurrency } from '../../utils/formatCurrency';
 import './CustomerOrders.css';
 
 const CustomerOrders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [refunds, setRefunds] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // all, active, completed, cancelled
   const [loading, setLoading] = useState(true);
 
@@ -20,14 +27,43 @@ const CustomerOrders = () => {
   };
 
   useEffect(() => {
-    orderService.getOrders()
-      .then((data) => {
-        const list = Array.isArray(data) ? data : (data.results || []);
-        setOrders(list);
+    Promise.all([
+      orderService.getOrders(),
+      paymentService.getRefunds().catch(() => [])
+    ])
+      .then(([ordersData, refundsData]) => {
+        const rawOrders = Array.isArray(ordersData) ? ordersData : (ordersData.results || []);
+        const rawRefunds = Array.isArray(refundsData) ? refundsData : (refundsData.results || []);
+        // Deduplicate orders by ID to ensure clean list
+        const uniqueOrders = Array.from(new Map(rawOrders.map((o) => [o.id, o])).values());
+        setOrders(uniqueOrders);
+        setRefunds(rawRefunds);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const getOrderRefundInfo = (ord) => {
+    if (!ord) return null;
+    // 1. Direct object from order serializer
+    if (ord.refund_request) return ord.refund_request;
+    // 2. Cross-reference from refunds list
+    const found = refunds.find((r) => {
+      const rOrderId = r.order?.id ?? r.order;
+      if (rOrderId && rOrderId === ord.id) return true;
+      if (ord.order_number && (r.order_number === ord.order_number || r.order?.order_number === ord.order_number)) return true;
+      return false;
+    });
+    if (found) return found;
+    // 3. Fallback to serializer refund_status if present
+    if (ord.refund_status) {
+      return {
+        status: ord.refund_status,
+        status_display: ord.refund_status_display
+      };
+    }
+    return null;
+  };
 
   const isActiveStatus = (st) => [
     'pending_acceptance',
@@ -43,10 +79,15 @@ const CustomerOrders = () => {
   const isClosedStatus = (st) => ['cancelled', 'rejected', 'expired'].includes(st);
 
   const filteredOrders = orders.filter((o) => {
-    if (activeTab === 'active') return isActiveStatus(o.status);
+    if (activeTab === 'active') {
+      const refundInfo = getOrderRefundInfo(o);
+      const isRefunding = refundInfo && ['pending', 'under_review', 'processing'].includes(String(refundInfo.status || '').toLowerCase().trim());
+      // Active tab in full order list view includes active workflow orders and refunding orders
+      return isActiveStatus(o.status) || isRefunding;
+    }
     if (activeTab === 'completed') return o.status === 'completed';
     if (activeTab === 'cancelled') return isClosedStatus(o.status);
-    return true;
+    return true; // 'all' includes every order
   });
 
   const getStatusBadge = (status) => {
@@ -104,7 +145,11 @@ const CustomerOrders = () => {
           All Orders ({orders.length})
         </div>
         <div className={`order-tab ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>
-          Active ({orders.filter(o => isActiveStatus(o.status)).length})
+          Active ({orders.filter(o => {
+            const refInfo = getOrderRefundInfo(o);
+            const isRefunding = refInfo && ['pending', 'under_review', 'processing'].includes(String(refInfo.status || '').toLowerCase().trim());
+            return isActiveStatus(o.status) || isRefunding;
+          }).length})
         </div>
         <div className={`order-tab ${activeTab === 'completed' ? 'active' : ''}`} onClick={() => setActiveTab('completed')}>
           Completed ({orders.filter(o => o.status === 'completed').length})
@@ -138,15 +183,19 @@ const CustomerOrders = () => {
                 <th>Shop</th>
                 <th>Pickup Code</th>
                 <th>Pickup Schedule</th>
-                <th>Status</th>
-                <th>Payment</th>
+                <th>Order Status</th>
+                <th>Payment Status</th>
+                <th>Refund Status</th>
                 <th>Amount</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.map((ord) => {
-                const badge = getStatusBadge(ord.status);
+                const orderBadge = getStatusBadge(ord.status);
+                const refundInfo = getOrderRefundInfo(ord);
+                const refundBadge = refundInfo ? getOrderRefundBadge(refundInfo.status) : null;
+
                 return (
                   <tr key={ord.id}>
                     <td>
@@ -176,10 +225,10 @@ const CustomerOrders = () => {
                         padding: '0.2rem 0.55rem',
                         borderRadius: 12,
                         textTransform: 'uppercase',
-                        backgroundColor: badge.bg,
-                        color: badge.color
+                        backgroundColor: orderBadge.bg,
+                        color: orderBadge.color
                       }}>
-                        {badge.label}
+                        {orderBadge.label}
                       </span>
                     </td>
                     <td>
@@ -191,7 +240,27 @@ const CustomerOrders = () => {
                         {formatPaymentStatus(ord.payment_status)}
                       </span>
                     </td>
-                    <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
+                    <td>
+                      {refundBadge ? (
+                        <span style={{
+                          display: 'inline-block',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: 12,
+                          textTransform: 'uppercase',
+                          backgroundColor: refundBadge.bg,
+                          color: refundBadge.color,
+                          border: refundBadge.border || 'none',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {refundBadge.label}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td><strong>{formatCurrency(ord.total_amount)}</strong></td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         {['awaiting_payment', 'accepted'].includes(ord.status) && ord.payment_status !== 'paid' ? (

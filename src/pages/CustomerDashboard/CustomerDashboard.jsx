@@ -83,6 +83,29 @@ const CustomerDashboard = () => {
     'ready_for_pickup'
   ];
 
+  // Track orders with an active/ongoing refund request
+  const activeRefundOrderIds = new Set();
+  const activeRefundOrderNumbers = new Set();
+  refundRequests.forEach((ref) => {
+    const refSt = String(ref.status || '').toLowerCase().trim();
+    if (['pending', 'under_review', 'processing'].includes(refSt)) {
+      const ordId = ref.order?.id ?? ref.order;
+      if (ordId) activeRefundOrderIds.add(ordId);
+      if (ref.order_number) activeRefundOrderNumbers.add(ref.order_number);
+      if (ref.order?.order_number) activeRefundOrderNumbers.add(ref.order.order_number);
+    }
+  });
+
+  const orderHasActiveRefund = (ord) => {
+    if (!ord) return false;
+    if (ord.has_active_refund) return true;
+    const refSt = String(ord.refund_status || '').toLowerCase().trim();
+    if (['pending', 'under_review', 'processing'].includes(refSt)) return true;
+    if (activeRefundOrderIds.has(ord.id)) return true;
+    if (ord.order_number && activeRefundOrderNumbers.has(ord.order_number)) return true;
+    return false;
+  };
+
   const isActiveOrder = (ord) => {
     if (!ord || !ord.status) return false;
     const st = String(ord.status).toLowerCase().trim();
@@ -91,6 +114,8 @@ const CustomerDashboard = () => {
   };
 
   const activeOrders = orders.filter(isActiveOrder);
+  // Hide orders that have an ongoing/active refund request from the small Active Orders preview
+  const previewActiveOrders = activeOrders.filter((ord) => !orderHasActiveRefund(ord));
   const completedOrders = orders.filter((o) => String(o.status || '').toLowerCase().trim() === 'completed');
   const readyForPickup = orders.filter((o) => String(o.status || '').toLowerCase().trim() === 'ready_for_pickup');
 
@@ -145,7 +170,7 @@ const CustomerDashboard = () => {
             <Clock size={24} />
           </div>
           <div>
-            <div className="stat-num">{activeOrders.length}</div>
+            <div className="stat-num">{previewActiveOrders.length}</div>
             <div className="stat-label">Active Orders</div>
           </div>
         </div>
@@ -194,7 +219,7 @@ const CustomerDashboard = () => {
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
             Loading orders...
           </div>
-        ) : activeOrders.length === 0 ? (
+        ) : previewActiveOrders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2.5rem', background: 'var(--bg-subtle)', borderRadius: 12 }}>
             <Printer size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem' }} />
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>No active orders right now.</p>
@@ -218,7 +243,7 @@ const CustomerDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {activeOrders.map((ord) => {
+                {previewActiveOrders.map((ord) => {
                   const payBadge = getPaymentStatusBadge(ord.payment_status);
                   const orderBadge = getOrderStatusBadge(ord.status);
                   const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(String(ord.status || '').toLowerCase().trim()) && String(ord.payment_status || '').toLowerCase().trim() !== 'paid';
@@ -305,7 +330,7 @@ const CustomerDashboard = () => {
                           {payBadge.label}
                         </span>
                       </td>
-                      <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
+                      <td><strong>{formatCurrency(ord.total_amount)}</strong></td>
                       <td>
                         <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                           {isAwaitingPay && (
