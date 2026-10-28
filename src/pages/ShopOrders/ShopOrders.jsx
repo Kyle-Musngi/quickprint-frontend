@@ -11,11 +11,23 @@ import {
   RotateCcw,
   Check,
   CreditCard,
-  Calendar
+  Calendar,
+  Eye,
+  FileText,
+  Loader2,
+  Users
 } from 'lucide-react';
 import { orderService } from '../../services/api';
 import { formatOrderStatus } from '../../utils/formatOrderStatus';
 import './ShopOrders.css';
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '0 KB';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
 
 const ShopOrders = () => {
   const { id: targetOrderId } = useParams();
@@ -23,6 +35,8 @@ const ShopOrders = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [docLoadingState, setDocLoadingState] = useState({});
+
 
   const fetchShopOrders = async () => {
     try {
@@ -77,6 +91,29 @@ const ShopOrders = () => {
     }
   };
 
+  const handleViewDocument = async (orderId, doc) => {
+    setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'viewing' }));
+    try {
+      await orderService.viewDocument(orderId, doc.id);
+    } catch (err) {
+      alert(err.message || 'Unable to open document for preview.');
+    } finally {
+      setDocLoadingState((prev) => ({ ...prev, [doc.id]: null }));
+    }
+  };
+
+  const handleDownloadDocument = async (orderId, doc) => {
+    setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'downloading' }));
+    try {
+      await orderService.downloadDocument(orderId, doc.id, doc.original_filename);
+    } catch (err) {
+      alert(err.message || 'Unable to download document.');
+    } finally {
+      setDocLoadingState((prev) => ({ ...prev, [doc.id]: null }));
+    }
+  };
+
+
   const isPending = (status) => ['pending_acceptance', 'submitted', 'received'].includes(status);
   const isAwaitingPay = (status) => status === 'awaiting_payment';
   const isInProduction = (status) => ['in_production', 'accepted', 'printing'].includes(status);
@@ -86,6 +123,7 @@ const ShopOrders = () => {
 
   const filteredOrders = orders.filter((o) => {
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'active_queue') return Boolean(o.queue_info?.is_active);
     if (statusFilter === 'pending') return isPending(o.status);
     if (statusFilter === 'awaiting_payment') return isAwaitingPay(o.status);
     if (statusFilter === 'production') return isInProduction(o.status);
@@ -93,6 +131,13 @@ const ShopOrders = () => {
     if (statusFilter === 'completed') return isCompleted(o.status);
     if (statusFilter === 'closed') return isClosed(o.status);
     return true;
+  }).sort((a, b) => {
+    if (statusFilter === 'active_queue') {
+      const posA = a.queue_info?.position || 9999;
+      const posB = b.queue_info?.position || 9999;
+      return posA - posB;
+    }
+    return 0;
   });
 
   const getStatusBadgeStyle = (status) => {
@@ -145,6 +190,15 @@ const ShopOrders = () => {
         >
           All Orders ({orders.length})
         </button>
+        <button
+          className={`filter-chip ${statusFilter === 'active_queue' ? 'active' : ''}`}
+          onClick={() => setStatusFilter('active_queue')}
+          style={{ borderColor: 'var(--primary-blue)', fontWeight: 700 }}
+        >
+          <Users size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+          Active Queue ({orders.filter(o => o.queue_info?.is_active).length})
+        </button>
+
         <button
           className={`filter-chip ${statusFilter === 'pending' ? 'active' : ''}`}
           onClick={() => setStatusFilter('pending')}
@@ -210,10 +264,24 @@ const ShopOrders = () => {
               >
                 <div className="shop-order-top">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: '1.2rem', color: 'var(--dark-blue)', fontWeight: 800 }}>
                         Order #{ord.order_number}
                       </h3>
+
+                      {ord.queue_info && (
+                        <span
+                          className={`shop-queue-tag ${ord.queue_info.is_active ? 'tag-active' : 'tag-done'}`}
+                          title={ord.queue_info.is_active ? `Current Position: ${ord.queue_info.position}` : 'Completed or Inactive in Queue'}
+                        >
+                          <Users size={12} />
+                          <strong>Queue {ord.queue_info.queue_number_display || `#${ord.queue_info.queue_number}`}</strong>
+                          {ord.queue_info.is_active && ord.queue_info.position ? (
+                            <span className="queue-pos-badge">Pos {ord.queue_info.position}</span>
+                          ) : null}
+                        </span>
+                      )}
+
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: 700,
@@ -240,24 +308,10 @@ const ShopOrders = () => {
                     </div>
 
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      Customer: <strong>{ord.customer_name}</strong> • Scheduled Pickup: <strong>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</strong>
+                      Customer: <strong>{ord.customer_name}</strong> • Scheduled: <strong>{ord.pickup_date || 'Standard'} ({ord.pickup_time_slot || 'Anytime'})</strong> • Placed: <strong>{new Date(ord.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}</strong>
                     </div>
-
-                    {ord.document && (
-                      <div style={{ marginTop: '0.4rem', fontSize: '0.82rem' }}>
-                        <a
-                          href={ord.document}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: 'var(--primary-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}
-                        >
-                          <Download size={14} /> Download Document
-                        </a>
-                        <span style={{ margin: '0 0.5rem', color: 'var(--text-muted)' }}>•</span>
-                        <span>{ord.pages || 1} pages × {ord.copies || 1} copies</span>
-                      </div>
-                    )}
                   </div>
+
 
                   <div style={{ textAlign: 'right' }}>
                     {ord.pickup_code ? (
@@ -270,6 +324,79 @@ const ShopOrders = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Uploaded Customer Documents Section */}
+                <div className="order-documents-section">
+                  <div className="order-documents-header">
+                    <FileText size={15} style={{ color: 'var(--primary-blue, #2563EB)' }} />
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main, #1E293B)' }}>
+                      Customer Uploaded Documents ({ord.documents?.length || 0})
+                    </span>
+                  </div>
+
+                  {(!ord.documents || ord.documents.length === 0) ? (
+                    <div className="order-no-documents-msg">
+                      <AlertCircle size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span>No document attached to this order.</span>
+                    </div>
+                  ) : (
+                    <div className="order-documents-list">
+                      {ord.documents.map((doc) => {
+                        const isViewing = docLoadingState[doc.id] === 'viewing';
+                        const isDownloading = docLoadingState[doc.id] === 'downloading';
+                        const fileExt = (doc.file_type || 'file').toUpperCase();
+
+                        return (
+                          <div key={doc.id} className="order-doc-item">
+                            <div className="order-doc-info">
+                              <span className={`doc-type-pill doc-type-${(doc.file_type || '').toLowerCase()}`}>
+                                {fileExt}
+                              </span>
+                              <div className="order-doc-meta">
+                                <span className="order-doc-filename" title={doc.original_filename}>
+                                  {doc.original_filename}
+                                </span>
+                                <span className="order-doc-specs">
+                                  {doc.file_size > 0 && <span>{formatFileSize(doc.file_size)} • </span>}
+                                  <span>
+                                    {doc.page_count || 1} pgs • {doc.copies || 1} {doc.copies > 1 ? 'copies' : 'copy'} • {doc.color_mode === 'color' ? 'Full Color' : 'B&W'} • {doc.paper_size || 'A4'} ({doc.print_side || 'single'})
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="order-doc-actions">
+                              {doc.is_previewable && (
+                                <button
+                                  type="button"
+                                  className="btn-doc-action btn-doc-view"
+                                  disabled={isViewing || isDownloading}
+                                  onClick={() => handleViewDocument(ord.id, doc)}
+                                  title="Preview document in browser"
+                                >
+                                  {isViewing ? <Loader2 size={13} className="spin" /> : <Eye size={13} />}
+                                  <span>{isViewing ? 'Opening...' : 'View'}</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                className="btn-doc-action btn-doc-download"
+                                disabled={isViewing || isDownloading}
+                                onClick={() => handleDownloadDocument(ord.id, doc)}
+                                title="Download document to device"
+                              >
+                                {isDownloading ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                                <span>{isDownloading ? 'Saving...' : 'Download'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
 
                 {/* State notices */}
                 {isAwaitingPay(ord.status) && (

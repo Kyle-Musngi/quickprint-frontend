@@ -12,7 +12,12 @@ import {
   Star,
   ArrowRight,
   ShieldAlert,
-  Send
+  Send,
+  Users,
+  Eye,
+  Download,
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { orderService, shopService } from '../../services/api';
 import './OrderTracking.css';
@@ -31,6 +36,30 @@ const OrderTracking = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [docLoadingState, setDocLoadingState] = useState({});
+
+  const handleViewDocument = async (orderId, doc) => {
+    setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'viewing' }));
+    try {
+      await orderService.viewDocument(orderId, doc.id);
+    } catch (err) {
+      alert(err.message || 'Unable to preview document.');
+    } finally {
+      setDocLoadingState((prev) => ({ ...prev, [doc.id]: null }));
+    }
+  };
+
+  const handleDownloadDocument = async (orderId, doc) => {
+    setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'downloading' }));
+    try {
+      await orderService.downloadDocument(orderId, doc.id, doc.original_filename);
+    } catch (err) {
+      alert(err.message || 'Unable to download document.');
+    } finally {
+      setDocLoadingState((prev) => ({ ...prev, [doc.id]: null }));
+    }
+  };
+
 
   // Review state
   const [rating, setRating] = useState(5);
@@ -268,6 +297,84 @@ const OrderTracking = () => {
         </div>
       )}
 
+      {/* FEATURE: Printing Queue Card */}
+      {order.queue_info && (
+        <div className="printing-queue-card">
+          <div className="queue-card-header">
+            <div className="queue-header-left">
+              <Users size={20} className="queue-header-icon" />
+              <div>
+                <h3 className="queue-card-title">Live Printing Queue</h3>
+                <p className="queue-shop-subtitle">Shop: <strong>{order.queue_info.shop_name || order.shop?.name}</strong></p>
+              </div>
+            </div>
+            <div className="queue-header-right">
+              <span className={`queue-badge-pill ${order.queue_info.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                {order.queue_info.is_active ? 'In Active Queue' : 'Queue Finished'}
+              </span>
+            </div>
+          </div>
+
+          <div className="queue-grid">
+            {/* 1. Permanent Queue Number */}
+            <div className="queue-metric-box metric-ticket">
+              <div className="metric-label">Queue Number</div>
+              <div className="metric-val ticket-number">{order.queue_info.queue_number_display || `#${order.queue_info.queue_number}`}</div>
+              <div className="metric-hint">Your permanent shop ticket for today</div>
+            </div>
+
+            {/* 2. Dynamic Queue Position */}
+            <div className="queue-metric-box metric-position">
+              <div className="metric-label">Current Position</div>
+              <div className="metric-val position-number">
+                {order.queue_info.is_active ? (
+                  order.queue_info.position === 1 ? '1st' : `${order.queue_info.position}`
+                ) : '—'}
+              </div>
+              <div className="metric-hint">
+                {order.queue_info.is_active 
+                  ? (order.queue_info.position === 1 ? 'You are next in line!' : `Position in shop line`)
+                  : 'Order has exited active queue'}
+              </div>
+            </div>
+
+            {/* 3. Orders Ahead */}
+            <div className="queue-metric-box metric-ahead">
+              <div className="metric-label">Orders Ahead</div>
+              <div className="metric-val ahead-number">
+                {order.queue_info.is_active ? order.queue_info.orders_ahead : 0}
+              </div>
+              <div className="metric-hint">
+                {order.queue_info.is_active 
+                  ? (order.queue_info.orders_ahead === 0 ? 'No orders ahead of you' : `${order.queue_info.orders_ahead} eligible orders ahead`)
+                  : 'No active orders ahead'}
+              </div>
+            </div>
+
+            {/* 4. Estimated Wait Time */}
+            <div className="queue-metric-box metric-wait">
+              <div className="metric-label">Estimated Wait</div>
+              <div className="metric-val wait-text">
+                {order.queue_info.estimated_wait_display || 'Calculating...'}
+              </div>
+              <div className="metric-hint">Based on shop queue & pages</div>
+            </div>
+          </div>
+
+          <div className="queue-explainer-footer">
+            <div className="explainer-item">
+              <Clock size={14} />
+              <span>
+                <strong>Queue Number vs. Position:</strong> Your <strong>Queue Number ({order.queue_info.queue_number_display})</strong> is your permanent assigned ticket. Your <strong>Current Position ({order.queue_info.is_active ? order.queue_info.position : 'Completed'})</strong> updates dynamically in real-time as preceding orders finish printing.
+              </span>
+            </div>
+            <div className="queue-last-updated">
+              Last updated: {new Date(order.queue_info.updated_at || Date.now()).toLocaleTimeString()} (Updates automatically)
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status Timeline */}
       <div className="tracking-card">
         <h2 className="tracking-card-title">
@@ -354,16 +461,52 @@ const OrderTracking = () => {
 
         {/* Documents attached */}
         <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-          <h4 style={{ fontSize: '0.9rem', color: 'var(--dark-blue)', marginBottom: '0.5rem' }}>Included Documents:</h4>
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            {order.documents?.map((doc) => (
-              <li key={doc.id} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-                <span>• {doc.original_filename} ({doc.page_count} pgs, {doc.copies} copy)</span>
-                <span>₱{parseFloat(doc.calculated_total).toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
+          <h4 style={{ fontSize: '0.9rem', color: 'var(--dark-blue)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <FileText size={16} style={{ color: 'var(--primary-blue)' }} /> Included Documents ({order.documents?.length || 0}):
+          </h4>
+          <div className="tracking-doc-list">
+            {order.documents?.map((doc) => {
+              const isViewing = docLoadingState[doc.id] === 'viewing';
+              const isDownloading = docLoadingState[doc.id] === 'downloading';
+
+              return (
+                <div key={doc.id} className="tracking-doc-item">
+                  <div className="tracking-doc-meta">
+                    <span className="tracking-doc-name">{doc.original_filename}</span>
+                    <span className="tracking-doc-specs">
+                      {doc.page_count} pgs • {doc.copies} copy • {doc.color_mode === 'color' ? 'Color' : 'B&W'} • ₱{parseFloat(doc.calculated_total).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="tracking-doc-actions">
+                    {doc.is_previewable && (
+                      <button
+                        type="button"
+                        className="btn-tracking-doc"
+                        disabled={isViewing || isDownloading}
+                        onClick={() => handleViewDocument(order.id, doc)}
+                        title="Preview document"
+                      >
+                        {isViewing ? <Loader2 size={13} className="spin" /> : <Eye size={13} />}
+                        <span>{isViewing ? 'Opening...' : 'View'}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-tracking-doc"
+                      disabled={isViewing || isDownloading}
+                      onClick={() => handleDownloadDocument(order.id, doc)}
+                      title="Download document"
+                    >
+                      {isDownloading ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                      <span>{isDownloading ? 'Saving...' : 'Download'}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
       </div>
 
       {/* FEATURE 2: Rate This Shop Section (Only on Completed Orders) */}

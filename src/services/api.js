@@ -214,8 +214,72 @@ export const orderService = {
     const res = await api.patch(`/orders/${id}/pickup-slot/`, data);
     return res.data;
   },
-  getDocumentDownloadUrl: (orderId, docId) => {
-    return `${API_BASE_URL}/orders/${orderId}/documents/${docId}/download/`;
+  getQueueStatus: async (id) => {
+    const res = await api.get(`/orders/${id}/queue-status/`);
+    return res.data;
+  },
+  getDocumentDownloadUrl: (orderId, docId, disposition = 'inline') => {
+    const token = localStorage.getItem('uqp_access_token');
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/orders/${orderId}/documents/${docId}/download/?disposition=${disposition}${tokenParam}`;
+  },
+  downloadDocument: async (orderId, docId, filename) => {
+    try {
+      const response = await api.get(`/orders/${orderId}/documents/${docId}/download/?disposition=attachment`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type'] || 'application/octet-stream'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename || `order_${orderId}_doc_${docId}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      return true;
+    } catch (err) {
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          throw new Error(json.error || json.detail || 'Failed to download document.');
+        } catch (parseErr) {
+          if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
+        }
+      }
+      throw new Error(err.response?.data?.error || err.response?.data?.detail || err.message || 'Failed to download document.');
+    }
+  },
+  viewDocument: async (orderId, docId) => {
+    try {
+      const response = await api.get(`/orders/${orderId}/documents/${docId}/download/?disposition=inline`, {
+        responseType: 'blob'
+      });
+      const contentType = response.headers['content-type'] || 'application/pdf';
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        // Fallback if popup blocked
+        window.location.href = url;
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+      return true;
+    } catch (err) {
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          throw new Error(json.error || json.detail || 'Failed to preview document.');
+        } catch (parseErr) {
+          if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
+        }
+      }
+      throw new Error(err.response?.data?.error || err.response?.data?.detail || err.message || 'Failed to preview document.');
+    }
   }
 };
 

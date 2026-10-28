@@ -149,7 +149,14 @@ const CustomerOrders = () => {
                 const badge = getStatusBadge(ord.status);
                 return (
                   <tr key={ord.id}>
-                    <td><strong>{ord.order_number}</strong></td>
+                    <td>
+                      <strong>{ord.order_number}</strong>
+                      {ord.queue_info?.queue_number_display && (
+                        <div style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 700, marginTop: '2px' }}>
+                          Queue {ord.queue_info.queue_number_display} {ord.queue_info.is_active && ord.queue_info.position ? `(Pos ${ord.queue_info.position})` : ''}
+                        </div>
+                      )}
+                    </td>
                     <td>{ord.shop_name}</td>
                     <td>
                       {ord.pickup_code ? (
