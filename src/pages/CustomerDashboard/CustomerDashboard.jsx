@@ -332,6 +332,7 @@ const CustomerDashboard = () => {
                           )}
                           <Link
                             to={`/tracking/${ord.id}`}
+                            state={{ from: '/customer/dashboard' }}
                             className="btn-nav-outline"
                             style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
                           >
@@ -340,6 +341,7 @@ const CustomerDashboard = () => {
                           {isPaid && (
                             <Link
                               to={`/order-summary/${ord.id}`}
+                              state={{ from: '/customer/dashboard' }}
                               className="btn-nav-outline"
                               style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                             >
@@ -471,6 +473,10 @@ const CustomerDashboard = () => {
                     ? new Date(ref.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : null;
 
+                  const targetOrderId = (typeof ref.order === 'object' && ref.order !== null)
+                    ? (ref.order.id || ref.order.order_id)
+                    : (ref.order || ref.order_id);
+
                   return (
                     <tr key={ref.id}>
                       <td>
@@ -480,11 +486,12 @@ const CustomerDashboard = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/tracking/${ref.order}`}
+                          to={`/tracking/${targetOrderId || ref.id}`}
+                          state={{ from: '/customer/dashboard' }}
                           style={{ fontWeight: 600, color: 'var(--primary-blue)', textDecoration: 'none' }}
                           title="Track this order"
                         >
-                          {ref.order_number || `#${ref.order}`}
+                          {ref.order_number || `#${targetOrderId || ref.id}`}
                         </Link>
                       </td>
                       <td>
@@ -536,7 +543,8 @@ const CustomerDashboard = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/tracking/${ref.order}#refund-section`}
+                          to={`/tracking/${targetOrderId || ref.id}#refund-section`}
+                          state={{ from: '/customer/dashboard', scrollToRefund: true, refundId: ref.id }}
                           className="btn-nav-outline"
                           style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}
                           title="View order tracking and refund progress"

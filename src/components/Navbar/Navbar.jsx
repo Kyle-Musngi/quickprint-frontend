@@ -12,8 +12,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
-  Store,
-  RotateCcw
+  Store
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -309,15 +308,6 @@ const Navbar = () => {
                         >
                           <Package size={16} />
                           <span>My Orders</span>
-                        </Link>
-                        <Link
-                          to="/customer/dashboard#refund-requests-section"
-                          className="user-dropdown-item"
-                          role="menuitem"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          <RotateCcw size={16} />
-                          <span>Refund Requests</span>
                         </Link>
                         <Link
                           to="/shop-registration"

@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Printer, ArrowLeft, Download, CheckCircle, CreditCard, AlertCircle } from 'lucide-react';
 import { orderService } from '../../services/api';
 import './OrderSummary.css';
 
 const OrderSummary = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const handleBack = () => {
+    // If the customer arrived from in-app navigation (e.g. from Track Order), pop back
+    // so we don't push a redundant Track Order entry to history.
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      // Safe fallback when accessed directly
+      navigate(`/tracking/${order.id}`, {
+        replace: true,
+        state: { from: location.state?.from || '/customer/orders' }
+      });
+    }
+  };
 
   useEffect(() => {
     orderService.getOrder(id)
@@ -37,9 +53,14 @@ const OrderSummary = () => {
   return (
     <div className="order-summary-page">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <Link to={`/tracking/${order.id}`} className="back-link">
-          <ArrowLeft size={16} /> Back to Live Tracking
-        </Link>
+        <button
+          type="button"
+          onClick={handleBack}
+          className="back-link"
+          aria-label="Back to Live Tracking"
+        >
+          <ArrowLeft size={16} /> <span>Back to Live Tracking</span>
+        </button>
         <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
           {isAwaitingPay && (
             <Link

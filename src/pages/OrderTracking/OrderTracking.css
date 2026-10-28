@@ -7,17 +7,26 @@
 
 .tracking-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: 2rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.25rem;
+  width: 100%;
 }
 
 .tracking-header-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tracking-header-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .tracking-back-btn {
@@ -134,8 +143,11 @@
 .tracking-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
   flex-wrap: wrap;
   gap: 0.65rem;
+  flex-shrink: 0;
 }
 
 .tracking-actions .btn-nav-outline {
@@ -842,4 +854,46 @@
   border-color: #93C5FD;
   color: var(--primary-blue, #2563EB);
 }
+
+/* Responsive Header & Action Buttons */
+@media (max-width: 860px) {
+  .tracking-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .tracking-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .order-tracking-page {
+    padding: 1.5rem 1rem 4rem;
+  }
+
+  .tracking-header-left {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .tracking-title {
+    font-size: 1.75rem;
+  }
+
+  .tracking-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .tracking-actions .btn-nav-outline {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 

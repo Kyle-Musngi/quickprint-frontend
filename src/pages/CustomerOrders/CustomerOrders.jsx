@@ -293,6 +293,7 @@ const CustomerOrders = () => {
                           ord.is_reviewed ? (
                             <Link
                               to={`/tracking/${ord.id}`}
+                              state={{ from: '/customer/orders' }}
                               className="btn-nav-outline"
                               style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', color: 'var(--color-success)' }}
                             >
@@ -301,6 +302,7 @@ const CustomerOrders = () => {
                           ) : (
                             <Link
                               to={`/tracking/${ord.id}`}
+                              state={{ from: '/customer/orders' }}
                               className="btn-nav-outline"
                               style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', borderColor: '#F59E0B', color: '#B45309', fontWeight: 700 }}
                             >
@@ -308,13 +310,35 @@ const CustomerOrders = () => {
                             </Link>
                           )
                         ) : (
-                          <Link to={`/tracking/${ord.id}`} className="btn-nav-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}>
+                          <Link
+                            to={`/tracking/${ord.id}`}
+                            state={{ from: '/customer/orders' }}
+                            className="btn-nav-outline"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                          >
                             Track
                           </Link>
                         )}
 
+                        {refundInfo && (
+                          <Link
+                            to={`/tracking/${ord.id}#refund-section`}
+                            state={{ from: '/customer/orders', scrollToRefund: true, refundId: refundInfo.id }}
+                            className="btn-nav-outline"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', borderColor: '#BFDBFE', color: '#1D4ED8', fontWeight: 600 }}
+                            title="Track refund request status and details"
+                          >
+                            Track Refund
+                          </Link>
+                        )}
+
                         {String(ord.payment_status || '').toLowerCase().trim() === 'paid' && (
-                          <Link to={`/order-summary/${ord.id}`} className="btn-nav-outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}>
+                          <Link
+                            to={`/order-summary/${ord.id}`}
+                            state={{ from: '/customer/orders' }}
+                            className="btn-nav-outline"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                          >
                             Receipt
                           </Link>
                         )}

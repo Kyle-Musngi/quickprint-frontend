@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Clock,
@@ -39,13 +39,23 @@ const OrderTracking = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBack = () => {
+    // If the customer arrived from another valid customer page (e.g. My Orders, Dashboard),
+    // navigate back to that page and avoid returning to the Receipt page.
+    const originFrom = location.state?.from;
+    if (originFrom && typeof originFrom === 'string' && !originFrom.includes('/order-summary/')) {
+      navigate(originFrom);
+      return;
+    }
+    // If browser history has a previous entry in this session, go back
     if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
-    } else {
-      navigate('/customer/orders');
+      return;
     }
+    // Safe default fallback destination
+    navigate('/customer/orders');
   };
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -95,9 +105,10 @@ const OrderTracking = () => {
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
   const [reviewError, setReviewError] = useState('');
 
-  const fetchRefundEligibility = async () => {
+  const fetchRefundEligibility = async (targetOrderId = (order?.id || id)) => {
+    if (!targetOrderId) return;
     try {
-      const data = await paymentService.getRefundEligibility(id);
+      const data = await paymentService.getRefundEligibility(targetOrderId);
       setRefundEligibility(data);
       const remainingBal = data?.remaining_refundable_balance ?? data?.remaining_refundable;
       if (remainingBal !== undefined && remainingBal !== null) {
@@ -112,7 +123,23 @@ const OrderTracking = () => {
     try {
       const data = await orderService.getOrder(id);
       setOrder(data);
+      fetchRefundEligibility(data.id);
     } catch (err) {
+      // Safe fallback: check if `id` parameter is actually a refund ID
+      try {
+        const refData = await paymentService.getRefund(id);
+        const resolvedOrderId = (typeof refData?.order === 'object' && refData?.order !== null)
+          ? (refData.order.id || refData.order.order_id)
+          : (refData?.order || refData?.order_id);
+        if (resolvedOrderId) {
+          const resolvedOrder = await orderService.getOrder(resolvedOrderId);
+          setOrder(resolvedOrder);
+          fetchRefundEligibility(resolvedOrder.id);
+          return;
+        }
+      } catch {
+        // Fall back to original error
+      }
       setErrorMsg(err.response?.data?.detail || 'Order tracking details not found.');
     } finally {
       setLoading(false);
@@ -121,14 +148,28 @@ const OrderTracking = () => {
 
   useEffect(() => {
     fetchOrder();
-    fetchRefundEligibility();
     // 10-second polling for live status tracking
     const interval = setInterval(() => {
       fetchOrder();
-      fetchRefundEligibility();
     }, 10000);
     return () => clearInterval(interval);
   }, [id]);
+
+  // Smooth scroll to refund section when navigated to for refund tracking
+  useEffect(() => {
+    if (!loading && order) {
+      const isRefundTarget = location.hash === '#refund-section' || location.state?.scrollToRefund;
+      if (isRefundTarget) {
+        const timer = setTimeout(() => {
+          const el = document.getElementById('refund-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 120);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, order, location.hash, location.state]);
 
   const showRefundToast = (text, type = 'success') => {
     setRefundToast({ text, type });
@@ -353,7 +394,7 @@ const OrderTracking = () => {
             <ArrowLeft size={18} />
             <span>Back</span>
           </button>
-          <div>
+          <div className="tracking-header-info">
             <h1 className="tracking-title">Track Order</h1>
             <div className="tracking-meta-row">
               <span className="tracking-sub">Order #{order.order_number}</span>
@@ -381,15 +422,16 @@ const OrderTracking = () => {
             title="Refresh order details and current status"
           >
             <RotateCcw size={16} className={refreshing ? 'spin-animation' : ''} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
           {isPaid && (
             <Link
               to={`/order-summary/${order.id}`}
+              state={{ from: location.state?.from || '/customer/orders' }}
               className="btn-nav-outline"
               title="View official payment receipt"
             >
-              <Receipt size={16} /> Receipt
+              <Receipt size={16} /> <span>Receipt</span>
             </Link>
           )}
           {isPaid && isRefundEligible && (
@@ -399,16 +441,20 @@ const OrderTracking = () => {
               className="btn-nav-outline"
               title="Request a refund for this order"
             >
-              <DollarSign size={16} /> Request Refund
+              <DollarSign size={16} /> <span>Request Refund</span>
             </button>
           )}
           {isPaid && !isRefundEligible && hasPendingRefund && (
             <a
               href="#refund-section"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('refund-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className="btn-nav-outline btn-refund-review-badge"
               title="A refund request is already pending review for this order. Click to view status."
             >
-              <Clock size={16} /> Refund Under Review
+              <Clock size={16} /> <span>Refund Under Review</span>
             </a>
           )}
         </div>
