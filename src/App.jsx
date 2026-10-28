@@ -34,6 +34,8 @@ import ShopAnalytics from './pages/ShopAnalytics/ShopAnalytics';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import AdminShopApprovals from './pages/AdminShopApprovals/AdminShopApprovals';
 import AdminSupportQuestions from './pages/AdminSupportQuestions/AdminSupportQuestions';
+import AdminNotifications from './pages/AdminNotifications/AdminNotifications';
+import ShopNotifications from './pages/ShopNotifications/ShopNotifications';
 import CustomerSupportQuestions from './pages/CustomerSupportQuestions/CustomerSupportQuestions';
 import NotFound from './pages/NotFound/NotFound';
 
@@ -213,6 +215,14 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/shop/notifications"
+                  element={
+                    <ProtectedRoute allowedRoles={['shop_owner', 'shop_staff', 'admin']}>
+                      <ShopNotifications />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Administrator Panel */}
                 <Route
@@ -220,6 +230,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/notifications"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminNotifications />
                     </ProtectedRoute>
                   }
                 />

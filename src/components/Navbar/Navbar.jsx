@@ -19,9 +19,15 @@ import { useNotifications } from '../../context/NotificationContext';
 import { formatRoleLabel } from '../../utils/formatRoleLabel';
 import './Navbar.css';
 
+export function getNotificationsDestination(userRole) {
+  if (userRole === 'admin') return '/admin/notifications';
+  if (userRole === 'shop_owner' || userRole === 'shop_staff') return '/shop/notifications';
+  return '/customer/notifications';
+}
+
 export function resolveNotificationLink(link, userRole) {
   if (!link) {
-    return userRole === 'customer' ? '/customer/dashboard' : '/shop/dashboard';
+    return getNotificationsDestination(userRole);
   }
   const target = String(link).trim();
   if (userRole === 'shop_owner' || userRole === 'shop_staff') {
@@ -36,8 +42,8 @@ export function resolveNotificationLink(link, userRole) {
     }
   }
   if (userRole === 'admin') {
-    if (target.startsWith('/admin/shops/')) {
-      return '/admin/approvals';
+    if (target.startsWith('/admin/shops/') || target === '/admin/shops' || target.startsWith('/admin/approvals')) {
+      return target.startsWith('/admin/approvals') ? target : '/admin/approvals';
     }
   }
   if (userRole === 'customer') {
@@ -239,11 +245,11 @@ const Navbar = () => {
                       </div>
                     )}
                     <Link
-                      to={user.role === 'customer' ? '/customer/notifications' : '/shop/dashboard'}
+                      to={getNotificationsDestination(user?.role)}
                       className="notification-view-all"
                       onClick={() => setNotificationsOpen(false)}
                     >
-                      {user.role === 'customer' ? 'View all notifications' : 'View notifications in Shop Portal'}
+                      View All Notifications
                     </Link>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Store,
   Check,
@@ -26,6 +26,8 @@ import './AdminShopApprovals.css';
 
 const AdminShopApprovals = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shopIdParam = searchParams.get('shopId');
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'approved', 'suspended'
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +60,19 @@ const AdminShopApprovals = () => {
   useEffect(() => {
     fetchShops(activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (shopIdParam) {
+      shopService.getShop(shopIdParam)
+        .then((fullShop) => {
+          setSelectedShopDetails(fullShop);
+          if (fullShop.status === 'approved') setActiveTab('approved');
+          else if (fullShop.status === 'suspended') setActiveTab('suspended');
+          else setActiveTab('pending');
+        })
+        .catch(() => {});
+    }
+  }, [shopIdParam]);
 
   const showToast = (text, type = 'success') => {
     setFeedbackMsg({ text, type });
