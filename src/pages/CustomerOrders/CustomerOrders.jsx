@@ -56,9 +56,9 @@ const CustomerOrders = () => {
       case 'received':
         return { label: 'Pending Acceptance', color: '#B45309', bg: '#FEF3C7' };
       case 'awaiting_payment':
+      case 'accepted':
         return { label: 'Awaiting Payment', color: '#C2410C', bg: '#FFF7ED' };
       case 'in_production':
-      case 'accepted':
       case 'printing':
         return { label: 'In Production', color: 'var(--primary-blue)', bg: '#EFF6FF' };
       case 'ready_for_pickup':
@@ -194,9 +194,9 @@ const CustomerOrders = () => {
                     <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        {ord.status === 'awaiting_payment' ? (
+                        {['awaiting_payment', 'accepted'].includes(ord.status) && ord.payment_status !== 'paid' ? (
                           <Link
-                            to={`/tracking/${ord.id}`}
+                            to={`/payment/${ord.id}`}
                             className="btn-primary"
                             style={{
                               padding: '0.35rem 0.75rem',
@@ -207,7 +207,8 @@ const CustomerOrders = () => {
                               alignItems: 'center',
                               gap: '0.3rem',
                               borderRadius: 4,
-                              fontWeight: 700
+                              fontWeight: 700,
+                              textDecoration: 'none'
                             }}
                           >
                             <CreditCard size={14} /> Pay Now

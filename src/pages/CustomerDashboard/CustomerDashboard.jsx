@@ -29,20 +29,54 @@ const CustomerDashboard = () => {
       paymentService.getPayments(),
     ])
       .then(([ordersRes, paymentsRes]) => {
-        const orderList = Array.isArray(ordersRes) ? ordersRes : (ordersRes.results || []);
-        const paymentList = Array.isArray(paymentsRes) ? paymentsRes : (paymentsRes.results || []);
-        setOrders(orderList);
-        setPayments(paymentList);
+        const rawOrders = Array.isArray(ordersRes) ? ordersRes : (ordersRes.results || []);
+        const rawPayments = Array.isArray(paymentsRes) ? paymentsRes : (paymentsRes.results || []);
+        // Deduplicate orders by ID to prevent duplicate rows on multiple fetches/refreshes
+        const uniqueOrders = Array.from(new Map(rawOrders.map((o) => [o.id, o])).values());
+        const uniquePayments = Array.from(new Map(rawPayments.map((p) => [p.id, p])).values());
+        setOrders(uniqueOrders);
+        setPayments(uniquePayments);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  // Include ALL non-closed orders in Active Orders (including awaiting_payment, submitted, accepted, in_production, ready_for_pickup)
-  const isClosed = (st) => ['completed', 'cancelled', 'rejected', 'expired'].includes(st);
-  const activeOrders = orders.filter((o) => !isClosed(o.status));
-  const completedOrders = orders.filter((o) => o.status === 'completed');
-  const readyForPickup = orders.filter((o) => o.status === 'ready_for_pickup');
+  // Standard active and terminal statuses across UQP
+  const CLOSED_STATUSES = ['completed', 'cancelled', 'rejected', 'expired'];
+  const ACTIVE_STATUSES = [
+    'awaiting_payment',
+    'accepted',
+    'pending_acceptance',
+    'submitted',
+    'received',
+    'in_production',
+    'printing',
+    'ready_for_pickup'
+  ];
+
+  const isActiveOrder = (ord) => {
+    if (!ord || !ord.status) return false;
+    const st = String(ord.status).toLowerCase().trim();
+    if (CLOSED_STATUSES.includes(st)) return false;
+    return ACTIVE_STATUSES.includes(st) || !CLOSED_STATUSES.includes(st);
+  };
+
+  const activeOrders = orders.filter(isActiveOrder);
+  const completedOrders = orders.filter((o) => String(o.status || '').toLowerCase().trim() === 'completed');
+  const readyForPickup = orders.filter((o) => String(o.status || '').toLowerCase().trim() === 'ready_for_pickup');
+
+  const formatSchedule = (ord) => {
+    if (!ord.pickup_date) return 'Standard / Flexible';
+    try {
+      const d = new Date(ord.pickup_date);
+      const dateStr = !isNaN(d.getTime())
+        ? d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : ord.pickup_date;
+      return ord.pickup_time_slot ? `${dateStr}, ${ord.pickup_time_slot}` : dateStr;
+    } catch {
+      return `${ord.pickup_date}${ord.pickup_time_slot ? `, ${ord.pickup_time_slot}` : ''}`;
+    }
+  };
 
   return (
     <div className="customer-dashboard-page">
@@ -135,19 +169,20 @@ const CustomerDashboard = () => {
               <thead>
                 <tr>
                   <th>Order #</th>
-                  <th>Date</th>
                   <th>Shop</th>
-                  <th>Items</th>
-                  <th>Total</th>
-                  <th>Payment Status</th>
+                  <th>Queue</th>
+                  <th>Pickup Schedule</th>
                   <th>Order Status</th>
+                  <th>Payment Status</th>
+                  <th>Amount</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {activeOrders.map((ord) => {
                   const payBadge = getPaymentStatusBadge(ord.payment_status);
-                  const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(ord.status) && ord.payment_status !== 'paid';
+                  const orderBadge = getOrderStatusBadge(ord.status);
+                  const isAwaitingPay = ['awaiting_payment', 'accepted'].includes(String(ord.status || '').toLowerCase().trim()) && String(ord.payment_status || '').toLowerCase().trim() !== 'paid';
 
                   return (
                     <tr key={ord.id}>
@@ -155,20 +190,65 @@ const CustomerDashboard = () => {
                         <strong>{ord.order_number}</strong>
                         {ord.pickup_code && (
                           <div style={{ marginTop: '0.2rem' }}>
-                            <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.78rem' }}>
+                            <span style={{ background: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: 4, fontSize: '0.78rem' }}>
                               Code: {ord.pickup_code}
                             </span>
                           </div>
                         )}
                       </td>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {ord.created_at ? new Date(ord.created_at).toLocaleDateString() : 'Recent'}
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{ord.shop_name || 'Print Shop'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {ord.documents?.length || ord.document_count || 1} document(s)
+                        </div>
                       </td>
-                      <td>{ord.shop_name || 'Print Shop'}</td>
-                      <td style={{ fontSize: '0.85rem' }}>
-                        {ord.documents?.length || ord.document_count || 1} document(s)
+                      <td>
+                        {ord.queue_info?.queue_number || ord.queue_info?.queue_number_display ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{
+                              fontWeight: 700,
+                              color: ord.queue_info.is_active ? '#2563EB' : 'var(--text-secondary)',
+                              fontSize: '0.85rem'
+                            }}>
+                              Queue {ord.queue_info.queue_number_display || `#${ord.queue_info.queue_number}`}
+                            </span>
+                            {ord.queue_info.is_active && ord.queue_info.position ? (
+                              <span style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: '#EFF6FF',
+                                color: '#1D4ED8',
+                                padding: '0.1rem 0.4rem',
+                                borderRadius: 4,
+                                border: '1px solid #BFDBFE'
+                              }}>
+                                Pos {ord.queue_info.position}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                        )}
                       </td>
-                      <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                        {formatSchedule(ord)}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: 6,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: orderBadge.color,
+                            backgroundColor: orderBadge.bg,
+                            border: `1px solid ${orderBadge.color}25`
+                          }}
+                        >
+                          {orderBadge.label}
+                        </span>
+                      </td>
                       <td>
                         <span
                           style={{
@@ -178,41 +258,38 @@ const CustomerDashboard = () => {
                             fontSize: '0.78rem',
                             fontWeight: 700,
                             color: payBadge.color,
-                            backgroundColor: payBadge.bg
+                            backgroundColor: payBadge.bg,
+                            border: `1px solid ${payBadge.color}25`
                           }}
                         >
                           {payBadge.label}
                         </span>
                       </td>
+                      <td><strong>₱{parseFloat(ord.total_amount).toFixed(2)}</strong></td>
                       <td>
-                        <span className={`badge ${getOrderStatusBadge(ord.status)}`}>
-                          {formatOrderStatus(ord.status)}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                           {isAwaitingPay && (
                             <Link
                               to={`/payment/${ord.id}`}
                               className="btn-order-action btn-action-accept"
-                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', textDecoration: 'none' }}
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                             >
-                              Pay Now
+                              <CreditCard size={14} /> Pay Now
                             </Link>
                           )}
                           <Link
                             to={`/tracking/${ord.id}`}
                             className="btn-nav-outline"
-                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
                           >
                             Track
                           </Link>
                           <Link
                             to={`/order-summary/${ord.id}`}
                             className="btn-nav-outline"
-                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                           >
-                            Receipt
+                            <Receipt size={14} /> Receipt
                           </Link>
                         </div>
                       </td>
