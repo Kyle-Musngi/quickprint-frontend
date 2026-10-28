@@ -51,6 +51,7 @@ const OrderTracking = () => {
   const [submittingRefund, setSubmittingRefund] = useState(false);
   const [cancellingRefundId, setCancellingRefundId] = useState(null);
   const [refundToast, setRefundToast] = useState({ text: '', type: '' });
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleViewDocument = async (orderId, doc) => {
     setDocLoadingState((prev) => ({ ...prev, [doc.id]: 'viewing' }));
@@ -121,6 +122,19 @@ const OrderTracking = () => {
   const showRefundToast = (text, type = 'success') => {
     setRefundToast({ text, type });
     setTimeout(() => setRefundToast({ text: '', type: '' }), 5000);
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchOrder(), fetchRefundEligibility()]);
+      showRefundToast('Order tracking and status refreshed.', 'info');
+    } catch {
+      alert('Unable to refresh order details. Please check your network connection.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleOpenRefundModal = () => {
@@ -287,6 +301,18 @@ const OrderTracking = () => {
   const isRejected = order.status === 'rejected';
   const isCompleted = order.status === 'completed';
 
+  const isPaid = String(order.payment_status || '').toLowerCase().trim() === 'paid';
+  const hasPendingRefund = Boolean(
+    refundEligibility?.has_pending_request ||
+    refundEligibility?.existing_refunds?.some((r) =>
+      ['pending', 'under_review', 'processing'].includes(String(r.status || '').toLowerCase().trim())
+    )
+  );
+  const remainingRefundable = parseFloat(
+    refundEligibility?.remaining_refundable_balance ?? refundEligibility?.remaining_refundable ?? 0
+  );
+  const isRefundEligible = isPaid && Boolean(refundEligibility?.eligible ?? refundEligibility?.is_eligible) && !hasPendingRefund && remainingRefundable > 0;
+
   return (
     <div className="order-tracking-page">
       <div className="tracking-header">
@@ -294,25 +320,47 @@ const OrderTracking = () => {
           <h1 className="tracking-title">Track Order</h1>
           <p className="tracking-sub">Order #{order.order_number}</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={fetchOrder} className="btn-nav-outline" title="Refresh status">
-            <RotateCcw size={16} /> Refresh
+        <div className="tracking-actions">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-nav-outline"
+            title="Refresh order details and current status"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', cursor: refreshing ? 'not-allowed' : 'pointer' }}
+          >
+            <RotateCcw size={16} className={refreshing ? 'spin-animation' : ''} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
-          {order.payment_status === 'paid' && (
-            <Link to={`/order-summary/${order.id}`} className="btn-nav-outline">
+          {isPaid && (
+            <Link
+              to={`/order-summary/${order.id}`}
+              className="btn-nav-outline"
+              title="View official payment receipt"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            >
               <Receipt size={16} /> Receipt
             </Link>
           )}
-          {order.payment_status === 'paid' && (
+          {isPaid && isRefundEligible && (
             <button
               type="button"
               onClick={handleOpenRefundModal}
               className="btn-order-action btn-action-neutral"
               title="Request a refund for this order"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
             >
               <DollarSign size={16} /> Request Refund
             </button>
+          )}
+          {isPaid && !isRefundEligible && hasPendingRefund && (
+            <a
+              href="#refund-section"
+              className="btn-nav-outline btn-refund-review-badge"
+              title="A refund request is already pending review for this order. Click to view status."
+            >
+              <Clock size={16} /> Refund Under Review
+            </a>
           )}
         </div>
       </div>
@@ -629,7 +677,7 @@ const OrderTracking = () => {
           <h2 className="tracking-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <DollarSign size={20} style={{ color: 'var(--primary-blue, #2563EB)' }} /> Refund Management
           </h2>
-          {order.payment_status === 'paid' && (refundEligibility?.eligible ?? true) && (
+          {isPaid && isRefundEligible && (
             <button
               type="button"
               onClick={handleOpenRefundModal}
@@ -641,7 +689,7 @@ const OrderTracking = () => {
           )}
         </div>
 
-        {order.payment_status !== 'paid' ? (
+        {!isPaid ? (
           <div style={{
             background: '#F8FAFC',
             border: '1px solid #E2E8F0',
@@ -662,7 +710,7 @@ const OrderTracking = () => {
           </div>
         ) : (
           <>
-            {refundEligibility?.eligible ? (
+            {isRefundEligible ? (
               <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '0.85rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                   <div style={{ fontWeight: 700, color: '#1E3A8A' }}>Eligible for Refund</div>
@@ -681,7 +729,7 @@ const OrderTracking = () => {
               </div>
             ) : (
               <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '0.85rem 1.25rem', marginBottom: '1rem', color: '#475569', fontSize: '0.875rem' }}>
-                {refundEligibility?.message || 'This order does not have an active refundable balance, or a refund request is currently being reviewed.'}
+                {refundEligibility?.ineligibility_reason || (hasPendingRefund ? 'A refund request for this order is currently under review by administrators.' : 'This order does not have an active refundable balance.')}
               </div>
             )}
           </>
